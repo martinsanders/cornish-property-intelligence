@@ -1,0 +1,111 @@
+.cpi-summary {
+    display: grid;
+    gap: 0.75rem;
+    margin-block: 1.5rem;
+}
+
+.cpi-summary__lead {
+    font-size: 1.08em;
+    font-weight: 500;
+}
+
+.cpi-summary__heading {
+    margin-block-end: 0;
+}
+
+.cpi-location-modules,
+.cpi-postcode-area-modules {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+}
+
+.cpi-location-module,
+.cpi-postcode-area-module {
+    border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.cpi-location-module__title,
+.cpi-postcode-area-module__title {
+    margin-block-start: 0;
+}
+
+.cpi-location-module__headline,
+.cpi-postcode-area-module__headline {
+    font-weight: 600;
+}
+
+.cpi-location-module__meta,
+.cpi-postcode-area-module__meta,
+.cpi-evidence-note {
+    font-size: 0.95em;
+    opacity: 0.82;
+}
+
+.cpi-location-bars,
+.cpi-postcode-area-bars {
+    display: grid;
+    gap: 0.65rem;
+    margin-block-start: 1rem;
+}
+
+.cpi-location-bar__label-row,
+.cpi-postcode-area-bar__label-row {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.cpi-location-bar__track,
+.cpi-postcode-area-bar__track {
+    background: color-mix(in srgb, currentColor 12%, transparent);
+    border-radius: 999px;
+    display: block;
+    height: 0.5rem;
+    overflow: hidden;
+}
+
+.cpi-location-bar__fill,
+.cpi-postcode-area-bar__fill {
+    background: #245a70;
+    display: block;
+    height: 100%;
+}
+
+.cpi-location-unavailable,
+.cpi-postcode-area-unavailable,
+.cpi-notice {
+    border-left: 4px solid #d8bd8a;
+    padding: 0.85rem 1rem;
+}
+
+.cpi-links {
+    display: grid;
+    gap: 0.45rem;
+    padding-inline-start: 1.2rem;
+}
+
+.cpi-virtual-page {
+    padding-block: 2rem;
+}
+
+.cpi-virtual-page__eyebrow {
+    color: #245a70;
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-block-end: 0.6rem;
+    text-transform: uppercase;
+}
+
+.cpi-virtual-page__section {
+    margin-block-start: 1.75rem;
+}
+
+.cpi-virtual-page__note {
+    background: #fffdf8;
+    border-left: 4px solid #d8bd8a;
+    padding: 1rem;
+}
