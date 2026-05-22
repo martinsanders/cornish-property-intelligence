@@ -611,6 +611,7 @@ final class ModuleRenderer
             if (
                 in_array($type, ['monthly-comparison', 'source-comparison', 'rating-comparison'], true)
                 || ($moduleType === 'change_mix' && $type === 'distribution')
+                || ($moduleType === 'epc_status' && $type === 'distribution')
             ) {
                 $primary[] = $rendered;
             } else {
