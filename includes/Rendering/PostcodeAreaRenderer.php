@@ -74,9 +74,10 @@ final class PostcodeAreaRenderer
         }
 
         $modules = $this->normaliseModules($payload);
+        $modules = $this->withExecutiveAnswerModule($modules, $payload);
+        $modules = $this->withAvailabilityModules($modules, $payload);
 
-        return $this->modules->render($modules, 'cpi-location')
-            .$this->missingEvidenceFamilies($modules);
+        return $this->modules->render($this->sortModules($modules), 'cpi-location');
     }
 
     /**
@@ -88,34 +89,48 @@ final class PostcodeAreaRenderer
             return '';
         }
 
+        $chain = is_array($payload['fallback_chain'] ?? null) ? $payload['fallback_chain'] : [];
+        $fallbackContext = is_array($payload['fallback_context'] ?? null) ? $payload['fallback_context'] : [];
         $guides = is_array($payload['associated_guides'] ?? null)
             ? $payload['associated_guides']
             : (is_array($payload['guides'] ?? null) ? $payload['guides'] : []);
 
         $articles = is_array($payload['associated_articles'] ?? null) ? $payload['associated_articles'] : [];
-        $fallbackCards = $this->fallbackContextCards($payload, $guides, $articles);
+        $fallbackCards = $chain !== []
+            ? $this->fallbackCardsFromChain($chain)
+            : $this->fallbackContextCards($payload, $guides, $articles);
+        $primaryGuide = $this->primaryGuideCard($fallbackCards);
+        $fallbackReason = $this->text($fallbackContext['fallback_reason'] ?? '')
+            ?: 'Near Me pages use the most local approved aggregate evidence first, then widen the context only where the export says a broader public guide is useful.';
 
         ob_start();
         ?>
-        <section class="cpi-postcode-area-fallback-context" aria-label="<?php echo esc_attr__('Fallback evidence context', 'cornish-property-intelligence'); ?>">
-            <div class="cpi-section-heading">
-                <p class="cpi-virtual-page__eyebrow"><?php echo esc_html__('Fallback evidence context', 'cornish-property-intelligence'); ?></p>
-                <h2><?php echo esc_html__('How this area view fills evidence gaps', 'cornish-property-intelligence'); ?></h2>
-                <p><?php echo esc_html__('Near Me pages should prefer the most local approved aggregate evidence, then widen the context only when that evidence is not available.', 'cornish-property-intelligence'); ?></p>
-            </div>
+        <section class="cpi-postcode-area-fallback-context cpi-location-local-context" aria-label="<?php echo esc_attr__('Fallback evidence context', 'cornish-property-intelligence'); ?>">
+            <article class="cpi-location-local-context__main cpi-postcode-area-fallback-context__main">
+                <p class="cpi-virtual-page__eyebrow"><?php echo esc_html__('Local context', 'cornish-property-intelligence'); ?></p>
+                <h2><?php echo esc_html__('Postcode evidence context', 'cornish-property-intelligence'); ?></h2>
+                <p><?php echo esc_html($fallbackReason); ?></p>
+            </article>
 
-            <div class="cpi-postcode-area-fallback-context__grid">
-                <?php foreach ($fallbackCards as $card) : ?>
-                    <article class="cpi-postcode-area-fallback-card <?php echo esc_attr($card['class']); ?>">
-                        <p class="cpi-postcode-area-fallback-card__eyebrow"><?php echo esc_html($card['eyebrow']); ?></p>
-                        <h3><?php echo esc_html($card['title']); ?></h3>
-                        <p><?php echo esc_html($card['body']); ?></p>
-                        <?php if ($card['url'] !== '') : ?>
-                            <a class="cpi-button cpi-button--secondary wp-element-button" href="<?php echo esc_url($card['url']); ?>"><?php echo esc_html($card['action']); ?></a>
-                        <?php endif; ?>
-                    </article>
-                <?php endforeach; ?>
-            </div>
+            <?php if ($primaryGuide !== null) : ?>
+                <aside class="cpi-location-local-context__note cpi-postcode-area-associated-guide-panel">
+                    <p class="cpi-virtual-page__eyebrow"><?php echo esc_html__('Associated public guide', 'cornish-property-intelligence'); ?></p>
+                    <h3><?php echo esc_html($primaryGuide['title']); ?></h3>
+                    <?php if ($primaryGuide['body'] !== '') : ?>
+                        <p><?php echo esc_html($primaryGuide['body']); ?></p>
+                    <?php endif; ?>
+                    <?php if ($primaryGuide['modules'] !== []) : ?>
+                        <ul class="cpi-location-hero-block__chips cpi-postcode-area-guide-chips" aria-label="<?php echo esc_attr__('Guide modules', 'cornish-property-intelligence'); ?>">
+                            <?php foreach ($primaryGuide['modules'] as $module) : ?>
+                                <li><?php echo esc_html($this->moduleLabel($module)); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                    <?php if ($primaryGuide['url'] !== '') : ?>
+                        <a class="cpi-button cpi-button--secondary wp-element-button" href="<?php echo esc_url($primaryGuide['url']); ?>"><?php echo esc_html__('Open Location guide', 'cornish-property-intelligence'); ?></a>
+                    <?php endif; ?>
+                </aside>
+            <?php endif; ?>
         </section>
         <?php
 
@@ -179,7 +194,8 @@ final class PostcodeAreaRenderer
 
         if (! is_array($module['interactive_charts'] ?? null)) {
             $interactiveCharts = $this->interactiveChartsFromStaticCharts(
-                is_array($module['charts'] ?? null) ? $module['charts'] : []
+                is_array($module['charts'] ?? null) ? $module['charts'] : [],
+                $moduleType
             );
 
             if ($interactiveCharts !== []) {
@@ -200,8 +216,27 @@ final class PostcodeAreaRenderer
                 ];
             }
 
+            if ($moduleType === 'epc_status') {
+                $module['data_studio_control']['title'] = 'EPC rating controls';
+                $module['data_studio_control']['summary'] = 'Current rating distribution';
+
+                if (! is_array($module['data_studio_control']['groups'] ?? null)) {
+                    $module['data_studio_control']['groups'] = [[
+                        'key' => 'epc_view',
+                        'label' => 'Evidence view',
+                        'options' => [[
+                            'value' => 'Current rating distribution',
+                            'label' => 'Current rating distribution',
+                            'active' => true,
+                        ]],
+                    ]];
+                }
+            }
+
             if ($this->text($module['current_view_summary'] ?? '') === '') {
-                $module['current_view_summary'] = 'Current view: approved aggregate evidence';
+                $module['current_view_summary'] = $moduleType === 'epc_status'
+                    ? 'Current rating distribution'
+                    : 'Current view: approved aggregate evidence';
             }
 
             if ($this->text($module['coverage_line'] ?? '') === '') {
@@ -221,10 +256,229 @@ final class PostcodeAreaRenderer
     }
 
     /**
+     * @param array<int|string, mixed> $modules
+     * @param array<string, mixed> $payload
+     * @return array<int|string, mixed>
+     */
+    private function withExecutiveAnswerModule(array $modules, array $payload): array
+    {
+        foreach ($modules as $key => $module) {
+            $moduleType = is_array($module)
+                ? $this->text($module['module_type'] ?? $key)
+                : (string) $key;
+
+            if ($moduleType === 'executive_answer') {
+                return $modules;
+            }
+        }
+
+        $summary = $this->text($payload['summary'] ?? '');
+        $fallbackContext = is_array($payload['fallback_context'] ?? null) ? $payload['fallback_context'] : [];
+        $fallbackReason = $this->text($fallbackContext['fallback_reason'] ?? '');
+
+        $modules = ['executive_answer' => [
+            'module_type' => 'executive_answer',
+            'title' => 'What the evidence suggests',
+            'headline' => $summary !== '' ? $summary : $fallbackReason,
+        ]] + $modules;
+
+        return $modules;
+    }
+
+    /**
+     * @param array<int|string, mixed> $modules
+     * @param array<string, mixed> $payload
+     * @return array<int|string, mixed>
+     */
+    private function withAvailabilityModules(array $modules, array $payload): array
+    {
+        $availability = is_array($payload['module_availability'] ?? null) ? $payload['module_availability'] : [];
+
+        if ($availability === []) {
+            return $modules;
+        }
+
+        $presentTypes = [];
+
+        foreach ($modules as $key => $module) {
+            $moduleType = is_array($module)
+                ? $this->displayModuleType($this->text($module['module_type'] ?? $key))
+                : $this->displayModuleType((string) $key);
+
+            if ($moduleType !== '') {
+                $presentTypes[] = $moduleType;
+            }
+        }
+
+        $presentTypes = array_unique($presentTypes);
+        $reportedTypes = [];
+
+        foreach ($availability as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $sourceType = $this->text($item['module_type'] ?? '');
+            $moduleType = $this->displayModuleType($sourceType);
+            $status = $this->text($item['status'] ?? 'missing');
+
+            if (
+                $moduleType === ''
+                || in_array($moduleType, $presentTypes, true)
+                || in_array($moduleType, $reportedTypes, true)
+                || in_array($status, ['active', 'available'], true)
+            ) {
+                continue;
+            }
+
+            $placeholder = $this->availabilityModule($item, $moduleType);
+
+            if ($placeholder === []) {
+                continue;
+            }
+
+            $modules['missing_'.$moduleType] = $placeholder;
+            $reportedTypes[] = $moduleType;
+        }
+
+        foreach ($this->defaultMissingModuleTypes() as $moduleType) {
+            if (in_array($moduleType, $presentTypes, true) || in_array($moduleType, $reportedTypes, true)) {
+                continue;
+            }
+
+            $placeholder = $this->missingModule($moduleType);
+
+            if ($placeholder === []) {
+                continue;
+            }
+
+            $modules['missing_'.$moduleType] = $placeholder;
+            $reportedTypes[] = $moduleType;
+        }
+
+        return $modules;
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     * @return array<string, mixed>
+     */
+    private function availabilityModule(array $item, string $moduleType): array
+    {
+        $status = $this->text($item['status'] ?? 'missing');
+        $sourceLevel = $this->text($item['source_level'] ?? 'none');
+        $explanation = $this->text($item['explanation'] ?? '');
+        $label = $this->text($item['label'] ?? '') ?: $this->moduleLabel($moduleType);
+        $summary = $explanation !== ''
+            ? $explanation
+            : 'Approved aggregate evidence is not available for this postcode geography yet.';
+
+        return [
+            'module_type' => $moduleType,
+            'title' => $label,
+            'headline' => $summary,
+            'body' => $this->statusLabel($status).'. '.$this->sourceLevelLabel($sourceLevel).'.',
+            'supporting_evidence' => [[
+                'key' => 'availability',
+                'label' => 'Evidence availability',
+                'summary' => $summary,
+            ]],
+        ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function defaultMissingModuleTypes(): array
+    {
+        return [
+            'market',
+            'trade_work_activity',
+            'change_mix',
+            'opportunity_signals',
+            'published_articles',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function missingModule(string $moduleType): array
+    {
+        $label = $this->moduleLabel($moduleType);
+        $summary = 'Approved aggregate '.$this->moduleAvailabilityLabel($moduleType).' evidence is not available for this postcode geography yet.';
+
+        return [
+            'module_type' => $moduleType,
+            'title' => $label,
+            'headline' => $summary,
+            'body' => 'Not available yet. Source level: none yet.',
+            'supporting_evidence' => [[
+                'key' => 'availability',
+                'label' => 'Evidence availability',
+                'summary' => $summary,
+            ]],
+        ];
+    }
+
+    private function moduleAvailabilityLabel(string $moduleType): string
+    {
+        return match ($moduleType) {
+            'trade_work_activity' => 'trade / work activity',
+            'change_mix' => 'change mix',
+            'opportunity_signals' => 'opportunity signals',
+            'published_articles' => 'published articles',
+            default => strtolower($this->moduleLabel($moduleType)),
+        };
+    }
+
+    private function displayModuleType(string $moduleType): string
+    {
+        return match ($moduleType) {
+            'planning',
+            'building_activity',
+            'planning_building',
+            'building_control',
+            'competent_person' => 'trade_work_activity',
+            default => $moduleType,
+        };
+    }
+
+    /**
+     * @param array<int|string, mixed> $modules
+     * @return array<int|string, mixed>
+     */
+    private function sortModules(array $modules): array
+    {
+        $order = [
+            'executive_answer' => 10,
+            'market' => 20,
+            'trade_work_activity' => 30,
+            'epc_status' => 40,
+            'change_mix' => 50,
+            'opportunity_signals' => 60,
+            'published_articles' => 70,
+        ];
+
+        uksort($modules, function (int|string $left, int|string $right) use ($modules, $order): int {
+            $leftType = is_array($modules[$left] ?? null)
+                ? $this->displayModuleType($this->text($modules[$left]['module_type'] ?? $left))
+                : $this->displayModuleType((string) $left);
+            $rightType = is_array($modules[$right] ?? null)
+                ? $this->displayModuleType($this->text($modules[$right]['module_type'] ?? $right))
+                : $this->displayModuleType((string) $right);
+
+            return ($order[$leftType] ?? 100) <=> ($order[$rightType] ?? 100);
+        });
+
+        return $modules;
+    }
+
+    /**
      * @param array<int, mixed> $charts
      * @return array<int, array<string, mixed>>
      */
-    private function interactiveChartsFromStaticCharts(array $charts): array
+    private function interactiveChartsFromStaticCharts(array $charts, string $moduleType = ''): array
     {
         $interactiveCharts = [];
 
@@ -233,7 +487,7 @@ final class PostcodeAreaRenderer
                 continue;
             }
 
-            $interactiveChart = $this->distributionFromChart($chart);
+            $interactiveChart = $this->distributionFromChart($chart, $moduleType);
 
             if ($interactiveChart !== null) {
                 $interactiveCharts[] = $interactiveChart;
@@ -247,7 +501,7 @@ final class PostcodeAreaRenderer
      * @param array<string, mixed> $chart
      * @return array<string, mixed>|null
      */
-    private function distributionFromChart(array $chart): ?array
+    private function distributionFromChart(array $chart, string $moduleType = ''): ?array
     {
         $type = $this->text($chart['type'] ?? '');
         $labels = is_array($chart['labels'] ?? null) ? $chart['labels'] : [];
@@ -279,15 +533,57 @@ final class PostcodeAreaRenderer
             return null;
         }
 
+        if ($moduleType === 'epc_status') {
+            return [
+                'type' => 'rating-comparison',
+                'title' => 'Current EPC rating profile',
+                'description' => $this->epcChartDescription($this->text($chart['description'] ?? ''), $moduleType),
+                'payload' => [
+                    'categories' => array_map(fn (array $item): string => $this->epcRatingLabel((string) $item['label']), $items),
+                    'series' => [[
+                        'name' => 'Current EPC rating',
+                        'data' => array_map(fn (array $item): int|float => $item['value'], $items),
+                    ]],
+                ],
+            ];
+        }
+
         return [
             'type' => 'distribution',
-            'title' => $this->text($chart['title'] ?? ''),
-            'description' => $this->text($chart['description'] ?? ''),
+            'title' => $this->epcChartTitle($this->text($chart['title'] ?? ''), $moduleType),
+            'description' => $this->epcChartDescription($this->text($chart['description'] ?? ''), $moduleType),
             'payload' => [
                 'seriesName' => $this->text($firstSeries['name'] ?? 'Aggregate records'),
                 'items' => $items,
             ],
         ];
+    }
+
+    private function epcRatingLabel(string $label): string
+    {
+        return str_starts_with($label, 'Rating ') ? $label : 'Rating '.$label;
+    }
+
+    private function epcChartTitle(string $title, string $moduleType): string
+    {
+        if ($moduleType !== 'epc_status') {
+            return $title;
+        }
+
+        return str_contains(strtolower($title), 'prototype')
+            ? 'Current EPC rating profile'
+            : $title;
+    }
+
+    private function epcChartDescription(string $description, string $moduleType): string
+    {
+        if ($moduleType !== 'epc_status') {
+            return $description;
+        }
+
+        return str_contains(strtolower($description), 'prototype')
+            ? 'Approved aggregate EPC rating buckets only.'
+            : $description;
     }
 
     /**
@@ -310,8 +606,8 @@ final class PostcodeAreaRenderer
             : $this->geographyLabel($payload, $module);
 
         return [[
-            'key' => 'current_period',
-            'label' => 'Evidence summary',
+            'key' => $this->text($module['module_type'] ?? '') === 'epc_status' ? 'epc_summary' : 'current_period',
+            'label' => $this->text($module['module_type'] ?? '') === 'epc_status' ? 'EPC summary' : 'Evidence summary',
             'summary' => $summary,
             'metrics' => $metrics,
         ]];
@@ -337,62 +633,70 @@ final class PostcodeAreaRenderer
     }
 
     /**
-     * @param array<int|string, mixed> $modules
-     */
-    private function missingEvidenceFamilies(array $modules): string
-    {
-        $presentTypes = [];
-
-        foreach ($modules as $module) {
-            if (is_array($module)) {
-                $presentTypes[] = $this->text($module['module_type'] ?? '');
-            }
-        }
-
-        $cards = [];
-
-        foreach ([
-            'market' => ['Market evidence', 'Approved aggregate market evidence is not available for this postcode geography yet.'],
-            'trade_work_activity' => ['Trade / work activity', 'Approved aggregate work activity evidence is not available for this postcode geography yet.'],
-            'planning_building' => ['Planning and building activity', 'Planning, Building Control and Competent Person summaries will appear when approved postcode evidence is exported.'],
-        ] as $type => [$title, $message]) {
-            if (in_array($type, $presentTypes, true)) {
-                continue;
-            }
-
-            $cards[] = [
-                'title' => $title,
-                'message' => $message,
-            ];
-        }
-
-        if ($cards === []) {
-            return '';
-        }
-
-        ob_start();
-        ?>
-        <section class="cpi-postcode-area-evidence-families" aria-label="<?php echo esc_attr__('Evidence availability', 'cornish-property-intelligence'); ?>">
-            <p class="cpi-postcode-area-evidence-families__eyebrow"><?php echo esc_html__('Evidence availability', 'cornish-property-intelligence'); ?></p>
-            <div class="cpi-postcode-area-evidence-families__grid">
-                <?php foreach ($cards as $card) : ?>
-                    <article class="cpi-postcode-area-evidence-family">
-                        <h3><?php echo esc_html($card['title']); ?></h3>
-                        <p><?php echo esc_html($card['message']); ?></p>
-                    </article>
-                <?php endforeach; ?>
-            </div>
-        </section>
-        <?php
-
-        return (string) ob_get_clean();
-    }
-
-    /**
      * @param array<string, mixed> $payload
      * @param array<int, mixed> $guides
      * @param array<int, mixed> $articles
-     * @return array<int, array{eyebrow: string, title: string, body: string, url: string, action: string, class: string}>
+     * @return array<int, array{eyebrow: string, title: string, body: string, url: string, action: string, class: string, status: string, modules: array<int, string>}>
+     */
+    private function fallbackCardsFromChain(array $chain): array
+    {
+        $cards = [];
+
+        foreach ($chain as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $level = $this->text($item['level'] ?? '');
+            $status = $this->text($item['status'] ?? 'missing');
+            $title = $this->text($item['label'] ?? '');
+            $url = $this->normalisePublicUrl($this->text($item['url'] ?? ''));
+            $modules = is_array($item['available_modules'] ?? null)
+                ? array_values(array_filter(array_map(fn (mixed $module): string => $this->text($module), $item['available_modules'])))
+                : [];
+
+            if ($title === '') {
+                $title = $this->levelLabel($level);
+            }
+
+            $cards[] = [
+                'eyebrow' => $this->levelLabel($level),
+                'title' => $title,
+                'body' => $this->text($item['explanation'] ?? ''),
+                'url' => $url,
+                'action' => $this->actionLabel($level),
+                'class' => 'cpi-postcode-area-fallback-card--'.sanitize_html_class($level ?: 'context').' cpi-postcode-area-fallback-card--status-'.sanitize_html_class($status),
+                'status' => $status,
+                'modules' => $modules,
+            ];
+        }
+
+        return $cards;
+    }
+
+    /**
+     * @param array<int, array{eyebrow: string, title: string, body: string, url: string, action: string, class: string, status: string, modules: array<int, string>}> $cards
+     * @return array{eyebrow: string, title: string, body: string, url: string, action: string, class: string, status: string, modules: array<int, string>}|null
+     */
+    private function primaryGuideCard(array $cards): ?array
+    {
+        foreach ($cards as $card) {
+            if (str_contains($card['class'], 'associated_location_guide') && $card['url'] !== '') {
+                return $card;
+            }
+        }
+
+        foreach ($cards as $card) {
+            if ($card['url'] !== '' && $card['status'] === 'fallback_available') {
+                return $card;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array<int, array{eyebrow: string, title: string, body: string, url: string, action: string, class: string, status: string, modules: array<int, string>}>
      */
     private function fallbackContextCards(array $payload, array $guides, array $articles): array
     {
@@ -410,6 +714,8 @@ final class PostcodeAreaRenderer
                 'url' => '',
                 'action' => '',
                 'class' => 'cpi-postcode-area-fallback-card--district',
+                'status' => 'missing',
+                'modules' => [],
             ]
             : [
                 'eyebrow' => 'Wider postcode context',
@@ -418,6 +724,8 @@ final class PostcodeAreaRenderer
                 'url' => $districtKey !== '' ? home_url('/near-me/'.sanitize_title($districtKey).'/') : '',
                 'action' => 'Open district view',
                 'class' => 'cpi-postcode-area-fallback-card--district',
+                'status' => 'missing',
+                'modules' => [],
             ];
 
         return [
@@ -430,6 +738,8 @@ final class PostcodeAreaRenderer
                 'url' => '',
                 'action' => '',
                 'class' => 'cpi-postcode-area-fallback-card--current',
+                'status' => 'active',
+                'modules' => [],
             ],
             $districtCard,
             [
@@ -441,6 +751,8 @@ final class PostcodeAreaRenderer
                 'url' => $guide['url'],
                 'action' => 'Open source guide',
                 'class' => 'cpi-postcode-area-fallback-card--location',
+                'status' => $guide['url'] !== '' ? 'fallback_available' : 'missing',
+                'modules' => [],
             ],
             [
                 'eyebrow' => 'Broader Cornwall context',
@@ -451,6 +763,8 @@ final class PostcodeAreaRenderer
                 'url' => $article['url'],
                 'action' => 'Read article',
                 'class' => 'cpi-postcode-area-fallback-card--cornwall',
+                'status' => $article['url'] !== '' ? 'fallback_available' : 'missing',
+                'modules' => [],
             ],
         ];
     }
@@ -477,7 +791,7 @@ final class PostcodeAreaRenderer
             if ($title !== '' || $url !== '') {
                 return [
                     'title' => $title,
-                    'url' => $url,
+                    'url' => $this->normalisePublicUrl($url),
                 ];
             }
         }
@@ -487,4 +801,122 @@ final class PostcodeAreaRenderer
             'url' => '',
         ];
     }
+
+    private function normalisePublicUrl(string $url): string
+    {
+        $url = trim($url);
+
+        if ($url === '') {
+            return '';
+        }
+
+        $path = (string) wp_parse_url($url, PHP_URL_PATH);
+        $query = (string) wp_parse_url($url, PHP_URL_QUERY);
+
+        if ($path === '/near-me/results' && $query !== '') {
+            parse_str($query, $params);
+            $area = isset($params['area']) && is_scalar($params['area']) ? sanitize_title((string) $params['area']) : '';
+
+            return $area !== '' ? home_url('/near-me/'.$area.'/') : '';
+        }
+
+        if (str_starts_with($path, '/locations/')) {
+            return home_url(trailingslashit($path));
+        }
+
+        if (str_starts_with($path, '/articles/')) {
+            return home_url(trailingslashit($path));
+        }
+
+        if (str_starts_with($url, '/')) {
+            return home_url($url);
+        }
+
+        return $url;
+    }
+
+    private function levelLabel(string $level): string
+    {
+        return match ($level) {
+            'postcode_sector' => 'Postcode sector',
+            'postcode_district' => 'Postcode district',
+            'associated_location_guide' => 'Associated Location guide',
+            'cornwall_wide_context' => 'Cornwall-wide context',
+            default => 'Fallback context',
+        };
+    }
+
+    private function actionLabel(string $level): string
+    {
+        return match ($level) {
+            'postcode_sector', 'postcode_district' => 'Open area view',
+            'associated_location_guide' => 'Open guide',
+            'cornwall_wide_context' => 'Open context',
+            default => 'Open',
+        };
+    }
+
+    private function statusLabel(string $status): string
+    {
+        return match ($status) {
+            'active', 'available' => 'Available here',
+            'fallback_available' => 'Fallback available',
+            'unavailable' => 'Unavailable',
+            default => 'Not available yet',
+        };
+    }
+
+    private function sourceLevelLabel(string $sourceLevel): string
+    {
+        return match ($sourceLevel) {
+            'sector' => 'Source level: postcode sector',
+            'district' => 'Source level: postcode district',
+            'location_guide' => 'Source level: associated Location guide',
+            'cornwall_wide' => 'Source level: Cornwall-wide context',
+            default => 'Source level: none yet',
+        };
+    }
+
+    private function moduleLabel(string $moduleType): string
+    {
+        return match ($moduleType) {
+            'epc_status' => 'EPC / retrofit',
+            'market' => 'Market',
+            'trade_work_activity' => 'Trade / work activity',
+            'planning' => 'Planning',
+            'building_activity' => 'Building activity',
+            default => ucwords(str_replace('_', ' ', $moduleType)),
+        };
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function fallbackContextNotes(array $context, array $gapNotes): array
+    {
+        $notes = [];
+
+        foreach (['location_context_note', 'guide_context_note', 'article_context_note'] as $key) {
+            $note = $this->text($context[$key] ?? '');
+
+            if ($note !== '') {
+                $notes[] = $note;
+            }
+        }
+
+        foreach ($gapNotes as $gapNote) {
+            if (! is_array($gapNote)) {
+                continue;
+            }
+
+            $note = $this->text($gapNote['explanation'] ?? '');
+
+            if ($note !== '') {
+                $notes[] = $note;
+            }
+        }
+
+        return array_values(array_unique($notes));
+    }
+
 }

@@ -882,115 +882,40 @@ button.cpi-postcode-area-control-chip {
     gap: 1rem;
 }
 
-.cpi-postcode-area-evidence-families {
-    background: var(--cpi-color-surface);
-    border: 1px solid var(--cpi-color-border);
-    border-radius: var(--cpi-radius);
-    display: grid;
-    gap: 1rem;
-    padding: clamp(1.1rem, 2vw, 1.4rem);
-}
-
-.cpi-postcode-area-evidence-families__eyebrow {
-    color: var(--cpi-color-primary);
-    font-size: 0.78rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    margin: 0;
-    text-transform: uppercase;
-}
-
-.cpi-postcode-area-evidence-families__grid {
-    display: grid;
-    gap: 0.85rem;
-}
-
-.cpi-postcode-area-evidence-family {
-    background: var(--cpi-color-soft);
-    border: 1px solid var(--cpi-color-border);
-    border-radius: var(--cpi-radius);
-    display: grid;
-    gap: 0.4rem;
-    padding: 0.95rem;
-}
-
-.cpi-postcode-area-evidence-family h3 {
-    color: var(--cpi-color-ink);
-    font-family: var(--cpi-heading-font);
-    font-size: 1rem;
-    font-weight: var(--cpi-heading-weight);
-    line-height: 1.25;
-    margin: 0;
-}
-
-.cpi-postcode-area-evidence-family p {
-    color: var(--cpi-color-muted);
-    font-size: 0.92rem;
-    line-height: 1.5;
-    margin: 0;
-}
-
 .cpi-postcode-area-fallback-context {
     display: grid;
     gap: 1.2rem;
 }
 
-.cpi-postcode-area-fallback-context .cpi-section-heading p:not(.cpi-virtual-page__eyebrow) {
-    color: var(--cpi-color-muted);
-    line-height: 1.6;
-    margin: 0;
-    max-inline-size: 58rem;
+.cpi-postcode-area-context-section {
+    padding-block: clamp(1.75rem, 3vw, 2.5rem);
 }
 
-.cpi-postcode-area-fallback-context__grid {
+.cpi-postcode-area-fallback-context.cpi-location-local-context {
+    align-items: stretch;
+}
+
+.cpi-postcode-area-fallback-context__main {
     display: grid;
     gap: 1rem;
 }
 
-.cpi-postcode-area-fallback-card {
-    background: var(--cpi-color-surface);
-    border: 1px solid var(--cpi-color-border);
-    border-radius: var(--cpi-radius);
+.cpi-postcode-area-associated-guide-panel {
+    align-content: start;
     display: grid;
-    gap: 0.65rem;
-    min-block-size: 12rem;
-    padding: clamp(1rem, 2vw, 1.25rem);
+    gap: 0.85rem;
 }
 
-.cpi-postcode-area-fallback-card--current,
-.cpi-postcode-area-fallback-card--location {
-    background: var(--cpi-color-soft);
-}
-
-.cpi-postcode-area-fallback-card__eyebrow {
-    color: var(--cpi-color-primary);
-    font-size: 0.76rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    margin: 0;
-    text-transform: uppercase;
-}
-
-.cpi-postcode-area-fallback-card h3 {
+.cpi-postcode-area-associated-guide-panel h3 {
     color: var(--cpi-color-ink);
     font-family: var(--cpi-heading-font);
-    font-size: 1.15rem;
-    font-weight: var(--cpi-heading-weight);
-    line-height: 1.2;
+    font-size: clamp(1.35rem, 2.4vw, 1.75rem);
+    line-height: 1.08;
     margin: 0;
 }
 
-.cpi-postcode-area-fallback-card p:not([class]) {
-    color: var(--cpi-color-muted);
-    font-size: 0.94rem;
-    line-height: 1.5;
-    margin: 0;
-}
-
-.cpi-postcode-area-fallback-card .cpi-button {
-    align-self: end;
+.cpi-postcode-area-associated-guide-panel .cpi-button {
     justify-self: start;
-    margin-block-start: 0.3rem;
 }
 
 @media (min-width: 720px) {
@@ -998,19 +923,8 @@ button.cpi-postcode-area-control-chip {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .cpi-postcode-area-supporting-evidence--epc_status .cpi-postcode-area-supporting-evidence__grid,
-    .cpi-postcode-area-evidence-families__grid {
+    .cpi-postcode-area-supporting-evidence--epc_status .cpi-postcode-area-supporting-evidence__grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .cpi-postcode-area-fallback-context__grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (min-width: 1080px) {
-    .cpi-postcode-area-fallback-context__grid {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
 
@@ -1693,6 +1607,7 @@ body.cpi-location-route,
 }
 
 .cpi-location-hero,
+.cpi-postcode-area-hero,
 .cpi-public-nav {
     background: color-mix(in srgb, var(--cpi-color-surface) 96%, transparent);
     border-color: var(--cpi-color-border);
@@ -1719,6 +1634,7 @@ body.cpi-location-route,
 .cpi-location-chart__description,
 .cpi-postcode-area-chart__description,
 .cpi-location-hero-block__summary,
+.cpi-postcode-area-hero .cpi-postcode-area-summary,
 .cpi-location-article-card p:not([class]),
 .cpi-postcode-area-article-card p:not([class]),
 .cpi-location-local-context p {
@@ -1843,6 +1759,7 @@ body.cpi-location-route,
 
 .cpi-virtual-page__section,
 .cpi-location-hero-block,
+.cpi-postcode-area-hero-block,
 .cpi-location-public-footer {
     max-inline-size: var(--cpi-container-width);
 }
