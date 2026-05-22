@@ -1,0 +1,16 @@
+.cpi-settings-tabs {
+    margin-block: 1.25rem 0;
+}
+
+.cpi-design-settings .wp-picker-container {
+    position: relative;
+}
+
+.cpi-design-settings .wp-picker-holder {
+    position: absolute;
+    z-index: 100000;
+}
+
+.cpi-design-settings .iris-picker {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}

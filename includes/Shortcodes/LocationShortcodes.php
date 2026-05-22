@@ -22,8 +22,11 @@ final class LocationShortcodes
         add_filter('query_vars', [$this, 'registerQueryVars']);
 
         add_shortcode('cp_location_title', [$this, 'title']);
+        add_shortcode('cp_location_hero', [$this, 'hero']);
         add_shortcode('cp_location_summary', [$this, 'summary']);
+        add_shortcode('cp_location_local_context', [$this, 'localContext']);
         add_shortcode('cp_location_modules', [$this, 'modules']);
+        add_shortcode('cp_location_campaign_cta', [$this, 'campaignCta']);
         add_shortcode('cp_location_privacy_note', [$this, 'privacyNote']);
     }
 
@@ -55,6 +58,20 @@ final class LocationShortcodes
     /**
      * @param array<string, mixed>|string $attributes
      */
+    public function hero(array|string $attributes = []): string
+    {
+        $payload = $this->payload($attributes);
+
+        if ($payload === null) {
+            return $this->unavailable();
+        }
+
+        return $this->renderer->hero($payload);
+    }
+
+    /**
+     * @param array<string, mixed>|string $attributes
+     */
     public function summary(array|string $attributes = []): string
     {
         $payload = $this->payload($attributes);
@@ -64,6 +81,20 @@ final class LocationShortcodes
         }
 
         return $this->renderer->summary($payload);
+    }
+
+    /**
+     * @param array<string, mixed>|string $attributes
+     */
+    public function localContext(array|string $attributes = []): string
+    {
+        $payload = $this->payload($attributes);
+
+        if ($payload === null) {
+            return $this->unavailable();
+        }
+
+        return $this->renderer->localContext($payload);
     }
 
     /**
@@ -92,6 +123,20 @@ final class LocationShortcodes
         }
 
         return $this->renderer->privacyNote($payload);
+    }
+
+    /**
+     * @param array<string, mixed>|string $attributes
+     */
+    public function campaignCta(array|string $attributes = []): string
+    {
+        $payload = $this->payload($attributes);
+
+        if ($payload === null) {
+            return '';
+        }
+
+        return $this->renderer->campaignCta($payload);
     }
 
     /**

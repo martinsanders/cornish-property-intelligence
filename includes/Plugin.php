@@ -54,6 +54,23 @@ final class Plugin
             [],
             '0.1.0'
         );
+        wp_add_inline_style('cornish-property-intelligence', self::designCss());
+
+        wp_enqueue_script(
+            'echarts',
+            'https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js',
+            [],
+            '5.5.1',
+            true
+        );
+
+        wp_enqueue_script(
+            'cornish-property-intelligence',
+            CPI_PLUGIN_URL.'assets/frontend.js',
+            ['echarts'],
+            '0.1.0',
+            true
+        );
     }
 
     public static function activate(): void
@@ -63,7 +80,7 @@ final class Plugin
     }
 
     /**
-     * @return array{manifest_path: string, last_checked_at: string, last_status: string, last_version: string}
+     * @return array<string, string>
      */
     public static function settings(): array
     {
@@ -78,6 +95,17 @@ final class Plugin
             'last_checked_at' => (string) ($settings['last_checked_at'] ?? ''),
             'last_status' => (string) ($settings['last_status'] ?? ''),
             'last_version' => (string) ($settings['last_version'] ?? ''),
+            'design_primary_color' => (string) ($settings['design_primary_color'] ?? ''),
+            'design_accent_color' => (string) ($settings['design_accent_color'] ?? ''),
+            'design_background_color' => (string) ($settings['design_background_color'] ?? ''),
+            'design_surface_color' => (string) ($settings['design_surface_color'] ?? ''),
+            'design_text_color' => (string) ($settings['design_text_color'] ?? ''),
+            'design_muted_text_color' => (string) ($settings['design_muted_text_color'] ?? ''),
+            'design_heading_font' => (string) ($settings['design_heading_font'] ?? ''),
+            'design_body_font' => (string) ($settings['design_body_font'] ?? ''),
+            'design_radius' => (string) ($settings['design_radius'] ?? ''),
+            'design_button_radius' => (string) ($settings['design_button_radius'] ?? ''),
+            'design_container_width' => (string) ($settings['design_container_width'] ?? ''),
         ];
     }
 
@@ -91,6 +119,61 @@ final class Plugin
             'last_checked_at' => $settings['last_checked_at'] ?? '',
             'last_status' => $settings['last_status'] ?? '',
             'last_version' => $settings['last_version'] ?? '',
+            'design_primary_color' => $settings['design_primary_color'] ?? '',
+            'design_accent_color' => $settings['design_accent_color'] ?? '',
+            'design_background_color' => $settings['design_background_color'] ?? '',
+            'design_surface_color' => $settings['design_surface_color'] ?? '',
+            'design_text_color' => $settings['design_text_color'] ?? '',
+            'design_muted_text_color' => $settings['design_muted_text_color'] ?? '',
+            'design_heading_font' => $settings['design_heading_font'] ?? '',
+            'design_body_font' => $settings['design_body_font'] ?? '',
+            'design_radius' => $settings['design_radius'] ?? '',
+            'design_button_radius' => $settings['design_button_radius'] ?? '',
+            'design_container_width' => $settings['design_container_width'] ?? '',
         ]);
+    }
+
+    private static function designCss(): string
+    {
+        $settings = self::settings();
+        $variables = [
+            '--cpi-color-primary' => $settings['design_primary_color'],
+            '--cpi-color-accent' => $settings['design_accent_color'],
+            '--cpi-color-page' => $settings['design_background_color'],
+            '--cpi-color-surface' => $settings['design_surface_color'],
+            '--cpi-color-ink' => $settings['design_text_color'],
+            '--cpi-color-muted' => $settings['design_muted_text_color'],
+            '--cpi-heading-font' => $settings['design_heading_font'],
+            '--cpi-body-font' => $settings['design_body_font'],
+            '--cpi-radius' => $settings['design_radius'],
+            '--cpi-button-radius' => $settings['design_button_radius'],
+            '--cpi-container-width' => $settings['design_container_width'],
+        ];
+        $declarations = [];
+
+        foreach ($variables as $name => $value) {
+            $value = self::safeCssValue((string) $value);
+
+            if ($value !== '') {
+                $declarations[] = $name.': '.$value.';';
+            }
+        }
+
+        if ($declarations === []) {
+            return '';
+        }
+
+        return ':root {'."\n    ".implode("\n    ", $declarations)."\n".'}';
+    }
+
+    private static function safeCssValue(string $value): string
+    {
+        $value = trim($value);
+
+        if ($value === '' || preg_match('/[;{}]/', $value) === 1) {
+            return '';
+        }
+
+        return $value;
     }
 }

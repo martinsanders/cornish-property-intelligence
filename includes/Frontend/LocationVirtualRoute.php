@@ -28,7 +28,22 @@ final class LocationVirtualRoute
         add_filter('query_vars', [$this, 'registerQueryVar']);
         add_action('template_redirect', [$this, 'render']);
         add_filter('document_title_parts', [$this, 'documentTitle']);
+        add_filter('body_class', [$this, 'bodyClass']);
         add_action('wp_head', [$this, 'canonicalTag']);
+    }
+
+    /**
+     * @param array<int, string> $classes
+     * @return array<int, string>
+     */
+    public function bodyClass(array $classes): array
+    {
+        if ($this->locationSlug() !== null) {
+            $classes[] = 'cpi-virtual-route';
+            $classes[] = 'cpi-location-route';
+        }
+
+        return $classes;
     }
 
     public function registerRewriteRule(): void
@@ -116,26 +131,27 @@ final class LocationVirtualRoute
         ob_start();
         ?>
         <main class="cpi-virtual-page cpi-location-virtual-page">
-            <header class="cpi-virtual-page__header">
-                <p class="cpi-virtual-page__eyebrow">
-                    <?php echo esc_html__('Location Intelligence', 'cornish-property-intelligence'); ?>
-                </p>
-                <h1 class="cpi-virtual-page__title">
-                    <?php echo do_shortcode('[cp_location_title]'); ?>
-                </h1>
+            <header class="cpi-location-hero">
+                <?php echo do_shortcode('[cp_location_hero]'); ?>
             </header>
 
-            <?php echo do_shortcode('[cp_location_summary]'); ?>
+            <section class="cpi-virtual-page__section cpi-location-context-section">
+                <?php echo do_shortcode('[cp_location_local_context]'); ?>
+            </section>
 
-            <section class="cpi-virtual-page__section">
-                <h2><?php echo esc_html__('Evidence modules', 'cornish-property-intelligence'); ?></h2>
+            <section class="cpi-virtual-page__section cpi-location-module-stack">
                 <?php echo do_shortcode('[cp_location_modules]'); ?>
+            </section>
+
+            <section class="cpi-virtual-page__section cpi-location-campaign-section">
+                <?php echo do_shortcode('[cp_location_campaign_cta]'); ?>
             </section>
 
             <section class="cpi-virtual-page__section cpi-virtual-page__note">
                 <h2><?php echo esc_html__('Evidence note', 'cornish-property-intelligence'); ?></h2>
                 <?php echo do_shortcode('[cp_location_privacy_note]'); ?>
             </section>
+
         </main>
         <?php
 

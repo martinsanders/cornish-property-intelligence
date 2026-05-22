@@ -1,7 +1,35 @@
+:root,
+.cpi-virtual-page,
+.cpi-location-modules,
+.cpi-postcode-area-modules,
+.cpi-location-module,
+.cpi-postcode-area-module {
+    --cpi-color-primary: var(--wp--preset--color--primary, var(--global-palette1, #245a70));
+    --cpi-color-accent: var(--wp--preset--color--secondary, var(--global-palette2, #9ec7bd));
+    --cpi-color-page: var(--wp--preset--color--base, var(--global-palette8, #f7f1e7));
+    --cpi-color-surface: var(--wp--preset--color--background, var(--global-palette9, #fffdf8));
+    --cpi-color-card: var(--wp--preset--color--white, var(--global-palette9, #fff));
+    --cpi-color-ink: var(--wp--preset--color--contrast, var(--global-palette3, #161e24));
+    --cpi-color-muted: var(--wp--preset--color--theme-palette-5, var(--global-palette5, #5e666d));
+    --cpi-color-border: color-mix(in srgb, var(--cpi-color-ink) 12%, transparent);
+    --cpi-color-soft: color-mix(in srgb, var(--cpi-color-primary) 10%, var(--cpi-color-surface));
+    --cpi-color-warning: var(--wp--preset--color--tertiary, var(--global-palette6, #d2b77f));
+    --cpi-heading-font: var(--wp--preset--font-family--heading, var(--global-heading-font-family, inherit));
+    --cpi-body-font: var(--wp--preset--font-family--body, var(--global-body-font-family, inherit));
+    --cpi-heading-weight: var(--global-heading-font-weight, 700);
+    --cpi-strong-weight: var(--global-body-font-weight-bold, 700);
+    --cpi-metric-value-size: clamp(1.45rem, 2vw, 2rem);
+    --cpi-chart-grid-color: color-mix(in srgb, var(--cpi-color-muted) 22%, transparent);
+    --cpi-radius: var(--global-border-radius, 8px);
+    --cpi-button-radius: var(--global-button-border-radius, var(--global-border-radius, 100px));
+    --cpi-pill-radius: 999px;
+    --cpi-container-width: var(--wp--style--global--wide-size, 76rem);
+}
+
 .cpi-summary {
     display: grid;
     gap: 0.75rem;
-    margin-block: 1.5rem;
+    margin-block: 1.25rem 0;
 }
 
 .cpi-summary__lead {
@@ -16,25 +44,261 @@
 .cpi-location-modules,
 .cpi-postcode-area-modules {
     display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: 1.25rem;
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .cpi-location-module,
 .cpi-postcode-area-module {
-    border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
-    border-radius: 8px;
-    padding: 1rem;
+    background: var(--cpi-color-surface);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    box-shadow: none;
+    display: grid;
+    gap: clamp(1.1rem, 1.8vw, 1.55rem);
+    padding: clamp(1.15rem, 2.25vw, 1.8rem);
+}
+
+.cpi-location-module--market,
+.cpi-location-module--trade_work_activity,
+.cpi-location-module--epc_status,
+.cpi-location-module--change_mix {
+    padding: clamp(1.2rem, 2.6vw, 2rem);
+}
+
+.cpi-location-module__header,
+.cpi-postcode-area-module__header {
+    display: grid;
+    gap: 0.7rem;
+    max-inline-size: 62rem;
+}
+
+.cpi-location-module--market .cpi-location-module__header,
+.cpi-location-module--trade_work_activity .cpi-location-module__header,
+.cpi-location-module--epc_status .cpi-location-module__header,
+.cpi-location-module--change_mix .cpi-location-module__header {
+    max-inline-size: none;
+}
+
+.cpi-location-module > .cpi-location-metrics,
+.cpi-postcode-area-module > .cpi-postcode-area-metrics {
+    order: 2;
+}
+
+.cpi-location-module > .cpi-location-interactive-charts,
+.cpi-postcode-area-module > .cpi-postcode-area-interactive-charts {
+    order: 4;
+}
+
+.cpi-location-module > .cpi-location-supporting-evidence,
+.cpi-postcode-area-module > .cpi-postcode-area-supporting-evidence,
+.cpi-location-module > .cpi-location-module__notes,
+.cpi-postcode-area-module > .cpi-postcode-area-module__notes {
+    order: 5;
 }
 
 .cpi-location-module__title,
 .cpi-postcode-area-module__title {
+    color: var(--cpi-color-ink);
+    font-family: var(--cpi-heading-font);
+    font-size: 1.25rem;
+    font-weight: var(--cpi-heading-weight);
+    line-height: 1.4;
     margin-block-start: 0;
+    margin-block-end: 0;
+}
+
+.cpi-location-module--executive_answer {
+    background: var(--cpi-color-card);
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--cpi-color-ink) 5%, transparent);
+}
+
+.cpi-location-module--executive_answer .cpi-location-module__title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.cpi-location-module__description,
+.cpi-postcode-area-module__description {
+    color: var(--cpi-color-muted);
+    font-size: 1rem;
+    line-height: 1.55;
+    margin: 0;
+}
+
+.cpi-location-module__eyebrow,
+.cpi-postcode-area-module__eyebrow {
+    color: var(--cpi-color-primary);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    margin: 0;
+    text-transform: uppercase;
 }
 
 .cpi-location-module__headline,
 .cpi-postcode-area-module__headline {
-    font-weight: 600;
+    background: var(--cpi-color-card);
+    border: 1px solid color-mix(in srgb, var(--cpi-color-warning) 64%, transparent);
+    border-left: 8px solid var(--cpi-color-warning);
+    border-radius: var(--cpi-radius);
+    color: var(--cpi-color-ink);
+    font-size: 0.875rem;
+    font-weight: 800;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0.9rem 1.25rem;
+}
+
+.cpi-location-module--executive_answer .cpi-location-module__headline,
+.cpi-postcode-area-module--executive_answer .cpi-postcode-area-module__headline {
+    background: transparent;
+    border: 0;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--cpi-color-muted);
+    line-height: 1.7;
+    max-inline-size: 58rem;
+    padding: 0;
+}
+
+.cpi-location-module__headline span,
+.cpi-postcode-area-module__headline span {
+    color: var(--cpi-color-ink);
+    font-weight: 800;
+}
+
+.cpi-location-executive-signals,
+.cpi-postcode-area-executive-signals {
+    display: grid;
+    gap: 1rem;
+    border-top: 1px solid var(--cpi-color-border);
+    margin-inline: calc(clamp(1.25rem, 2.4vw, 2rem) * -1);
+    padding: clamp(1.25rem, 2.4vw, 2rem) clamp(1.25rem, 2.4vw, 2rem) 0;
+}
+
+@media (min-width: 860px) {
+    .cpi-location-executive-signals,
+    .cpi-postcode-area-executive-signals {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+.cpi-location-executive-signal,
+.cpi-postcode-area-executive-signal {
+    background: color-mix(in srgb, var(--cpi-color-card) 70%, transparent);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: auto minmax(0, 1fr);
+    min-block-size: 11rem;
+    padding: 1.25rem;
+}
+
+.cpi-location-executive-signal__icon,
+.cpi-postcode-area-executive-signal__icon {
+    background: var(--cpi-color-card);
+    border: 1px solid color-mix(in srgb, var(--cpi-color-accent) 55%, transparent);
+    border-radius: var(--cpi-radius);
+    display: block;
+    height: 2.5rem;
+    position: relative;
+    width: 2.5rem;
+}
+
+.cpi-location-executive-signal__icon::after,
+.cpi-postcode-area-executive-signal__icon::after {
+    content: "";
+    display: block;
+    position: absolute;
+}
+
+.cpi-location-executive-signal--trade .cpi-location-executive-signal__icon::after,
+.cpi-postcode-area-executive-signal--trade .cpi-postcode-area-executive-signal__icon::after {
+    background: var(--cpi-color-primary);
+    border-radius: 999px;
+    height: 0.2rem;
+    left: 0.75rem;
+    top: 1.15rem;
+    transform: rotate(-45deg);
+    width: 1rem;
+}
+
+.cpi-location-executive-signal--trade .cpi-location-executive-signal__icon::before,
+.cpi-postcode-area-executive-signal--trade .cpi-postcode-area-executive-signal__icon::before {
+    background: var(--cpi-color-primary);
+    border-radius: 2px;
+    content: "";
+    height: 0.45rem;
+    left: 0.55rem;
+    position: absolute;
+    top: 1.28rem;
+    transform: rotate(-45deg);
+    width: 0.22rem;
+}
+
+.cpi-location-executive-signal--market .cpi-location-executive-signal__icon::before,
+.cpi-postcode-area-executive-signal--market .cpi-postcode-area-executive-signal__icon::before {
+    border-bottom: 2px solid var(--cpi-color-primary);
+    border-left: 2px solid var(--cpi-color-primary);
+    border-right: 2px solid var(--cpi-color-primary);
+    bottom: 0.75rem;
+    content: "";
+    height: 0.65rem;
+    left: 0.7rem;
+    position: absolute;
+    width: 1.05rem;
+}
+
+.cpi-location-executive-signal--market .cpi-location-executive-signal__icon::after,
+.cpi-postcode-area-executive-signal--market .cpi-postcode-area-executive-signal__icon::after {
+    border-left: 2px solid var(--cpi-color-primary);
+    border-top: 2px solid var(--cpi-color-primary);
+    height: 0.45rem;
+    left: 0.92rem;
+    top: 0.78rem;
+    transform: rotate(45deg);
+    width: 0.45rem;
+}
+
+.cpi-location-executive-signal--epc .cpi-location-executive-signal__icon::before,
+.cpi-postcode-area-executive-signal--epc .cpi-postcode-area-executive-signal__icon::before {
+    border: 2px solid var(--cpi-color-primary);
+    border-radius: 2px;
+    content: "";
+    height: 1rem;
+    left: 0.78rem;
+    position: absolute;
+    top: 0.68rem;
+    width: 0.85rem;
+}
+
+.cpi-location-executive-signal--epc .cpi-location-executive-signal__icon::after,
+.cpi-postcode-area-executive-signal--epc .cpi-postcode-area-executive-signal__icon::after {
+    background: var(--cpi-color-primary);
+    box-shadow: 0 0.28rem 0 var(--cpi-color-primary);
+    height: 0.1rem;
+    left: 0.98rem;
+    top: 1rem;
+    width: 0.45rem;
+}
+
+.cpi-location-executive-signal h4,
+.cpi-postcode-area-executive-signal h4 {
+    color: var(--cpi-color-ink);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 0.55rem;
+}
+
+.cpi-location-executive-signal p:not([class]),
+.cpi-postcode-area-executive-signal p:not([class]) {
+    color: var(--cpi-color-muted);
+    font-size: 0.92rem;
+    line-height: 1.65;
+    margin: 0;
 }
 
 .cpi-location-module__meta,
@@ -60,13 +324,23 @@
 
 .cpi-location-chart,
 .cpi-postcode-area-chart {
+    background: color-mix(in srgb, var(--cpi-color-card) 96%, var(--cpi-color-surface));
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
     display: grid;
     gap: 0.6rem;
+    padding: 1rem;
+}
+
+.cpi-location-chart--monthly-comparison,
+.cpi-location-chart--source-comparison,
+.cpi-location-chart--rating-comparison {
+    padding: clamp(1rem, 2vw, 1.5rem);
 }
 
 .cpi-location-chart__title,
 .cpi-postcode-area-chart__title {
-    font-size: 1rem;
+    line-height: 1.4;
     margin: 0;
 }
 
@@ -92,6 +366,697 @@
     margin: 0;
 }
 
+.cpi-location-data-studio,
+.cpi-postcode-area-data-studio,
+.cpi-location-supporting-evidence,
+.cpi-postcode-area-supporting-evidence {
+    display: grid;
+    gap: 0.75rem;
+    margin-block-start: 0;
+}
+
+.cpi-location-metrics,
+.cpi-postcode-area-metrics {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+    margin: 0;
+}
+
+.cpi-location-metric,
+.cpi-postcode-area-metric {
+    background: var(--cpi-color-card);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.85rem;
+}
+
+.cpi-location-metric dt,
+.cpi-postcode-area-metric dt {
+    color: var(--cpi-color-muted);
+    font-size: 0.76rem;
+    font-weight: 800;
+}
+
+.cpi-location-metric dd,
+.cpi-postcode-area-metric dd {
+    color: var(--cpi-color-ink);
+    font-size: 1.1rem;
+    font-weight: var(--cpi-strong-weight);
+    margin: 0;
+}
+
+.cpi-location-data-studio,
+.cpi-postcode-area-data-studio {
+    background: var(--cpi-color-card);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    box-shadow: none;
+    padding: clamp(1rem, 1.8vw, 1.35rem);
+}
+
+.cpi-location-data-studio__eyebrow,
+.cpi-postcode-area-data-studio__eyebrow {
+    color: var(--cpi-color-primary);
+    font-size: 0.74em;
+    font-weight: 850;
+    letter-spacing: 0.06em;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.cpi-location-data-studio__title,
+.cpi-postcode-area-data-studio__title {
+    margin: 0;
+}
+
+.cpi-location-supporting-evidence__eyebrow,
+.cpi-postcode-area-supporting-evidence__eyebrow,
+.cpi-location-supporting-card__title,
+.cpi-postcode-area-supporting-card__title {
+    color: var(--cpi-color-primary);
+    font-family: var(--cpi-body-font);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    line-height: 1.35;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.cpi-location-data-studio__summary,
+.cpi-postcode-area-data-studio__summary,
+.cpi-location-data-studio__coverage,
+.cpi-postcode-area-data-studio__coverage,
+.cpi-location-supporting-card__summary,
+.cpi-postcode-area-supporting-card__summary,
+.cpi-location-data-studio__missing,
+.cpi-postcode-area-data-studio__missing {
+    font-size: 0.9em;
+    margin: 0;
+    opacity: 0.84;
+}
+
+.cpi-location-data-studio__status,
+.cpi-postcode-area-data-studio__status {
+    align-items: end;
+    border-top: 1px solid var(--cpi-color-border);
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    margin-block-start: 0.25rem;
+    padding-block-start: 0.85rem;
+}
+
+.cpi-location-data-studio__summary,
+.cpi-postcode-area-data-studio__summary {
+    color: var(--cpi-color-primary);
+    font-weight: 850;
+}
+
+.cpi-location-data-studio__coverage,
+.cpi-postcode-area-data-studio__coverage {
+    color: var(--cpi-color-muted);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    margin-block-start: 0.4rem;
+    text-transform: uppercase;
+}
+
+.cpi-location-control-groups,
+.cpi-postcode-area-control-groups {
+    align-items: end;
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+    margin-block-start: 0.85rem;
+}
+
+.cpi-location-control-groups:has(.cpi-location-control-group:only-child),
+.cpi-postcode-area-control-groups:has(.cpi-postcode-area-control-group:only-child) {
+    grid-template-columns: minmax(0, 19rem);
+}
+
+.cpi-location-control-group,
+.cpi-postcode-area-control-group {
+    display: grid;
+    gap: 0.35rem;
+    position: relative;
+}
+
+.cpi-location-control-group__label,
+.cpi-postcode-area-control-group__label {
+    color: var(--cpi-color-muted);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.cpi-location-control-select,
+.cpi-postcode-area-control-select {
+    appearance: none;
+    background:
+        linear-gradient(45deg, transparent 50%, var(--cpi-color-primary) 50%) calc(100% - 18px) 50% / 7px 7px no-repeat,
+        linear-gradient(135deg, var(--cpi-color-primary) 50%, transparent 50%) calc(100% - 13px) 50% / 7px 7px no-repeat,
+        var(--cpi-color-card);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: 999px;
+    color: var(--cpi-color-ink);
+    font: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    min-block-size: 3rem;
+    padding: 0.62rem 2.35rem 0.62rem 1rem;
+    width: 100%;
+}
+
+.cpi-location-control-select-native,
+.cpi-postcode-area-control-select-native {
+    block-size: 1px;
+    inline-size: 1px;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+}
+
+.cpi-location-select,
+.cpi-postcode-area-select {
+    position: relative;
+}
+
+.cpi-location-select__button,
+.cpi-postcode-area-select__button {
+    align-items: center;
+    background: var(--cpi-color-card) !important;
+    border: 1px solid var(--cpi-color-border);
+    border-radius: 999px;
+    box-shadow: 0 1px 2px color-mix(in srgb, var(--cpi-color-ink) 4%, transparent);
+    color: var(--cpi-color-ink) !important;
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 900;
+    gap: 0.55rem;
+    justify-content: space-between;
+    block-size: 2.6rem;
+    min-block-size: 2.6rem;
+    padding: 0 0.45rem 0 1rem;
+    text-align: left;
+    width: 100%;
+}
+
+.cpi-location-select__button:focus-visible,
+.cpi-postcode-area-select__button:focus-visible,
+.cpi-select--open .cpi-location-select__button,
+.cpi-select--open .cpi-postcode-area-select__button {
+    background: var(--cpi-color-card) !important;
+    border-color: var(--cpi-color-primary);
+    color: var(--cpi-color-ink) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--cpi-color-accent) 70%, transparent), 0 1px 2px color-mix(in srgb, var(--cpi-color-ink) 4%, transparent);
+    outline: none;
+}
+
+.cpi-location-select__button:hover,
+.cpi-location-select__button:active,
+.cpi-postcode-area-select__button:hover,
+.cpi-postcode-area-select__button:active {
+    background: var(--cpi-color-card) !important;
+    color: var(--cpi-color-ink) !important;
+}
+
+.cpi-location-select__icon,
+.cpi-postcode-area-select__icon {
+    align-items: center;
+    background: var(--cpi-color-soft);
+    border-radius: 999px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 1.85rem;
+    justify-content: center;
+    width: 1.85rem;
+}
+
+.cpi-location-select__icon::before,
+.cpi-postcode-area-select__icon::before {
+    border-color: var(--cpi-color-primary);
+    border-style: solid;
+    border-width: 0 2px 2px 0;
+    content: "";
+    display: block;
+    height: 0.42rem;
+    transform: translateY(-0.1rem) rotate(45deg);
+    width: 0.42rem;
+}
+
+.cpi-select--open .cpi-location-select__icon::before,
+.cpi-select--open .cpi-postcode-area-select__icon::before {
+    transform: translateY(0.15rem) rotate(225deg);
+}
+
+.cpi-location-select__menu,
+.cpi-postcode-area-select__menu {
+    background: var(--cpi-color-card);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: 0 0 var(--cpi-radius) var(--cpi-radius);
+    box-shadow: 0 18px 40px color-mix(in srgb, var(--cpi-color-ink) 14%, transparent);
+    display: none;
+    inset-block-start: calc(100% + 0.35rem);
+    inset-inline: 0;
+    overflow: hidden;
+    padding-block: 0.25rem;
+    position: absolute;
+    z-index: 40;
+}
+
+.cpi-select--open .cpi-location-select__menu,
+.cpi-select--open .cpi-postcode-area-select__menu {
+    display: grid;
+}
+
+.cpi-location-select__option,
+.cpi-postcode-area-select__option {
+    background: var(--cpi-color-card);
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: var(--cpi-color-ink);
+    cursor: pointer;
+    display: block;
+    font: inherit;
+    font-size: 0.84rem;
+    font-weight: 750;
+    line-height: 1.25;
+    margin: 0 !important;
+    min-block-size: 0;
+    padding: 0.5rem 0.95rem !important;
+    text-align: left;
+    text-transform: none;
+    width: 100%;
+}
+
+.cpi-location-select__option:hover,
+.cpi-postcode-area-select__option:hover {
+    background: color-mix(in srgb, var(--cpi-color-primary) 8%, var(--cpi-color-card)) !important;
+    color: var(--cpi-color-ink);
+}
+
+.cpi-location-select__option[aria-selected="true"],
+.cpi-postcode-area-select__option[aria-selected="true"] {
+    background: color-mix(in srgb, var(--cpi-color-primary) 14%, var(--cpi-color-card)) !important;
+    color: var(--cpi-color-ink);
+}
+
+.cpi-location-select--readonly .cpi-location-select__button,
+.cpi-postcode-area-select--readonly .cpi-postcode-area-select__button {
+    opacity: 1;
+    cursor: default;
+}
+
+.cpi-location-control-reset,
+.cpi-postcode-area-control-reset {
+    background: var(--cpi-color-card);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: 999px;
+    color: var(--cpi-color-primary);
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+    font-weight: 850;
+    justify-self: end;
+    letter-spacing: 0.04em;
+    padding: 0.68rem 1rem;
+    text-transform: uppercase;
+}
+
+.cpi-location-control-select:focus,
+.cpi-postcode-area-control-select:focus {
+    border-color: var(--cpi-color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--cpi-color-primary) 16%, transparent);
+    outline: none;
+}
+
+.cpi-location-control-select--readonly,
+.cpi-postcode-area-control-select--readonly {
+    color: var(--cpi-color-ink);
+    pointer-events: none;
+}
+
+.cpi-location-control-group__options,
+.cpi-postcode-area-control-group__options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.cpi-location-control-chip,
+.cpi-postcode-area-control-chip {
+    background: transparent;
+    border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+    border-radius: 999px;
+    color: inherit;
+    display: inline-flex;
+    font-size: 0.82em;
+    line-height: 1.2;
+    padding: 0.32rem 0.58rem;
+}
+
+button.cpi-location-control-chip,
+button.cpi-postcode-area-control-chip {
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.cpi-location-control-chip--active,
+.cpi-postcode-area-control-chip--active {
+    background: var(--cpi-color-primary);
+    border-color: var(--cpi-color-primary);
+    color: var(--cpi-color-card);
+}
+
+.cpi-location-interactive-charts,
+.cpi-postcode-area-interactive-charts,
+.cpi-location-evidence-visuals,
+.cpi-postcode-area-evidence-visuals,
+.cpi-location-evidence-primary,
+.cpi-postcode-area-evidence-primary {
+    display: grid;
+    gap: 1rem;
+    margin-block-start: 0;
+}
+
+.cpi-location-evidence-secondary,
+.cpi-postcode-area-evidence-secondary {
+    margin-block-start: 0.75rem;
+}
+
+.cpi-location-evidence-secondary,
+.cpi-postcode-area-evidence-secondary {
+    display: grid;
+    gap: 1.1rem;
+}
+
+@media (min-width: 860px) {
+    .cpi-location-interactive-charts,
+    .cpi-postcode-area-interactive-charts {
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+    }
+
+    .cpi-location-evidence-secondary,
+    .cpi-postcode-area-evidence-secondary {
+        align-items: start;
+        grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.92fr);
+    }
+
+    .cpi-location-chart--monthly-comparison,
+    .cpi-postcode-area-chart--monthly-comparison,
+    .cpi-location-chart--source-comparison,
+    .cpi-postcode-area-chart--source-comparison,
+    .cpi-location-chart--rating-comparison,
+    .cpi-postcode-area-chart--rating-comparison {
+        grid-column: 1 / -1;
+    }
+}
+
+.cpi-location-echart,
+.cpi-postcode-area-echart {
+    block-size: 18rem;
+    display: none;
+    inline-size: 100%;
+    margin-block-start: 0.75rem;
+    min-block-size: 16rem;
+}
+
+.cpi-location-chart--monthly-comparison .cpi-location-echart,
+.cpi-location-chart--source-comparison .cpi-location-echart,
+.cpi-location-chart--rating-comparison .cpi-location-echart {
+    block-size: 19rem;
+}
+
+.cpi-location-chart--distribution .cpi-location-echart {
+    block-size: 18rem;
+}
+
+.cpi-location-chart__status,
+.cpi-postcode-area-chart__status {
+    color: var(--cpi-color-primary);
+    font-size: 0.84rem;
+    font-weight: 700;
+    margin: 0.25rem 0 0;
+}
+
+.cpi-location-chart__status[hidden],
+.cpi-postcode-area-chart__status[hidden],
+.cpi-location-chart__status:empty,
+.cpi-postcode-area-chart__status:empty {
+    display: none;
+}
+
+.cpi-location-chart__empty,
+.cpi-postcode-area-chart__empty {
+    background: var(--cpi-color-soft);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    color: var(--cpi-color-muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+    margin: 0.9rem 0 0;
+    padding: 0.9rem 1rem;
+}
+
+.cpi-location-chart--echarts-ready .cpi-location-echart,
+.cpi-postcode-area-chart--echarts-ready .cpi-postcode-area-echart {
+    display: block;
+}
+
+.cpi-location-chart--echarts-ready [data-cpi-chart-output],
+.cpi-postcode-area-chart--echarts-ready [data-cpi-chart-output] {
+    display: none;
+}
+
+.cpi-location-supporting-card,
+.cpi-postcode-area-supporting-card {
+    background: var(--cpi-color-card);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    display: grid;
+    gap: 0.65rem;
+    min-inline-size: 0;
+    padding: 0.8rem;
+}
+
+.cpi-location-supporting-evidence--market {
+    background: var(--cpi-color-card);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    display: grid;
+    gap: 0.8rem;
+    padding: 0.95rem;
+}
+
+.cpi-location-supporting-evidence--market .cpi-location-supporting-evidence__grid {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 720px) {
+    .cpi-location-supporting-evidence--market .cpi-location-supporting-evidence__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.cpi-location-supporting-card--module-market {
+    background: color-mix(in srgb, var(--cpi-color-card) 82%, var(--cpi-color-surface));
+    align-content: start;
+    gap: 0.75rem;
+    padding: 0.85rem;
+}
+
+.cpi-location-supporting-card--comparison_period {
+    background: var(--cpi-color-soft);
+    border-color: color-mix(in srgb, var(--cpi-color-accent) 42%, transparent);
+    color: var(--cpi-color-primary);
+}
+
+.cpi-location-supporting-evidence--market .cpi-location-supporting-card__summary {
+    color: var(--cpi-color-primary);
+    font-size: 0.9rem;
+    line-height: 1.45;
+    max-inline-size: 26rem;
+    opacity: 1;
+}
+
+.cpi-location-supporting-evidence--market .cpi-location-metrics {
+    border-top: 1px solid var(--cpi-color-border);
+    gap: 0.8rem;
+    grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+    padding-block-start: 0.8rem;
+}
+
+.cpi-location-supporting-evidence--market .cpi-location-metrics::before {
+    background: var(--cpi-color-border);
+    content: "";
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.cpi-location-supporting-evidence--market .cpi-location-metric {
+    background: transparent;
+    border: 0;
+    min-inline-size: 0;
+    padding: 0;
+}
+
+.cpi-location-supporting-evidence--market .cpi-location-metric:nth-child(2) {
+    grid-column: 3;
+    text-align: right;
+}
+
+.cpi-location-supporting-evidence--market .cpi-location-metric dt {
+    color: var(--cpi-color-muted);
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    text-transform: none;
+}
+
+.cpi-location-supporting-evidence--market .cpi-location-metric dd {
+    font-family: var(--cpi-heading-font);
+    font-size: clamp(1.45rem, 2vw, 2rem);
+    font-weight: var(--cpi-heading-weight);
+    letter-spacing: 0;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.cpi-location-supporting-evidence--market .cpi-location-metric:nth-child(2) dd {
+    font-size: clamp(1.05rem, 1.45vw, 1.35rem);
+    line-height: 1.15;
+}
+
+.cpi-location-supporting-evidence--trade_work_activity {
+    background: var(--cpi-color-card);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    display: grid;
+    gap: 1rem;
+    padding: 1.25rem;
+}
+
+.cpi-location-supporting-card--module-trade_work_activity {
+    background: transparent;
+    border: 0;
+    gap: 1rem;
+    padding: 0;
+}
+
+.cpi-location-supporting-card--module-trade_work_activity .cpi-location-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cpi-location-supporting-card--module-trade_work_activity .cpi-location-metric {
+    background: var(--cpi-color-surface);
+    padding: 1rem;
+}
+
+.cpi-location-supporting-card--module-trade_work_activity .cpi-location-metric:nth-child(3) {
+    grid-column: 1 / -1;
+}
+
+.cpi-location-supporting-card--module-trade_work_activity .cpi-location-source-totals {
+    border-top: 1px solid var(--cpi-color-border);
+    padding-block-start: 1rem;
+}
+
+.cpi-location-supporting-evidence--epc_status {
+    background: transparent;
+    border: 0;
+    margin-block-start: 0.25rem;
+    padding: 0;
+}
+
+.cpi-location-supporting-card--module-epc_status .cpi-location-supporting-card__title {
+    display: none;
+}
+
+.cpi-location-supporting-evidence--epc_status .cpi-location-supporting-evidence__eyebrow {
+    color: var(--cpi-color-ink);
+    font-family: var(--cpi-heading-font);
+    font-size: 1.25rem;
+    font-weight: var(--cpi-heading-weight);
+    letter-spacing: 0;
+    line-height: 1.4;
+    margin-block-end: 0.25rem;
+    text-transform: none;
+}
+
+.cpi-location-supporting-card--module-epc_status {
+    background: transparent;
+    border: 0;
+    padding: 0;
+}
+
+.cpi-location-supporting-card--module-epc_status .cpi-location-metrics {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.cpi-location-supporting-card--module-epc_status .cpi-location-metric {
+    background: var(--cpi-color-card);
+    padding: 1rem;
+}
+
+.cpi-location-supporting-card--module-epc_status .cpi-location-metric dd {
+    font-family: var(--cpi-heading-font);
+    font-size: var(--cpi-metric-value-size);
+    font-weight: var(--cpi-heading-weight);
+    line-height: 1;
+}
+
+.cpi-location-supporting-evidence__grid,
+.cpi-postcode-area-supporting-evidence__grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.cpi-location-source-totals,
+.cpi-postcode-area-source-totals {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+    margin: 0;
+}
+
+.cpi-location-source-total,
+.cpi-postcode-area-source-total {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.cpi-location-source-total dt,
+.cpi-postcode-area-source-total dt {
+    font-size: 0.78em;
+    font-weight: 700;
+}
+
+.cpi-location-source-total dd,
+.cpi-postcode-area-source-total dd {
+    font-size: 1.2em;
+    font-weight: 700;
+    margin: 0;
+}
+
+.cpi-location-source-total p,
+.cpi-postcode-area-source-total p {
+    font-size: 0.85em;
+    margin: 0;
+    opacity: 0.78;
+}
+
 .cpi-location-bar__label-row,
 .cpi-postcode-area-bar__label-row {
     display: flex;
@@ -110,7 +1075,7 @@
 
 .cpi-location-bar__fill,
 .cpi-postcode-area-bar__fill {
-    background: #245a70;
+    background: var(--cpi-color-primary);
     display: block;
     height: 100%;
 }
@@ -118,7 +1083,7 @@
 .cpi-location-unavailable,
 .cpi-postcode-area-unavailable,
 .cpi-notice {
-    border-left: 4px solid #d8bd8a;
+    border-left: 4px solid var(--cpi-color-warning);
     padding: 0.85rem 1rem;
 }
 
@@ -128,12 +1093,147 @@
     padding-inline-start: 1.2rem;
 }
 
+.cpi-location-article-cards,
+.cpi-postcode-area-article-cards {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 760px) {
+    .cpi-location-article-cards,
+    .cpi-postcode-area-article-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.cpi-location-article-card,
+.cpi-postcode-area-article-card {
+    background: var(--cpi-color-card);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    display: grid;
+    gap: 0.75rem;
+    overflow: hidden;
+    padding: 0 1rem 1rem;
+}
+
+.cpi-location-article-card__media,
+.cpi-postcode-area-article-card__media {
+    align-items: center;
+    background: var(--cpi-color-soft);
+    block-size: 7rem;
+    display: flex;
+    justify-content: center;
+    margin-inline: -1rem;
+}
+
+.cpi-location-article-card__media::after,
+.cpi-postcode-area-article-card__media::after {
+    border: 1px solid var(--cpi-color-primary);
+    border-radius: 4px;
+    content: "";
+    display: block;
+    height: 1rem;
+    opacity: 0.65;
+    width: 1rem;
+}
+
+.cpi-location-article-card__topic,
+.cpi-postcode-area-article-card__topic {
+    color: var(--cpi-color-primary);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.cpi-location-article-card h4,
+.cpi-postcode-area-article-card h4 {
+    font-size: 1rem;
+    line-height: 1.3;
+    margin: 0;
+}
+
+.cpi-location-article-card a,
+.cpi-postcode-area-article-card a {
+    color: var(--cpi-color-ink);
+    text-decoration: none;
+}
+
+.cpi-location-article-card p:not([class]),
+.cpi-postcode-area-article-card p:not([class]) {
+    color: var(--cpi-color-muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin: 0;
+}
+
+body.cpi-location-route {
+    background: var(--cpi-color-page);
+}
+
+body.cpi-location-route #inner-wrap,
+body.cpi-location-route .entry-content,
+body.cpi-location-route .content-area {
+    margin: 0;
+    max-inline-size: none;
+    padding: 0;
+    width: 100%;
+}
+
 .cpi-virtual-page {
-    padding-block: 2rem;
+    background: var(--cpi-color-page);
+    color: var(--cpi-color-ink);
+    font-family: var(--cpi-body-font);
+    font-size: 16px;
+    line-height: 1.5;
+    margin-inline: auto;
+    max-inline-size: none;
+    padding: 0;
+}
+
+.cpi-virtual-page,
+.cpi-virtual-page * {
+    box-sizing: border-box;
+}
+
+.cpi-location-virtual-page {
+    display: grid;
+    gap: 0;
+}
+
+.cpi-public-nav {
+    align-items: center;
+    background: rgba(255, 253, 248, 0.95);
+    border-block-end: 1px solid rgba(6, 17, 38, 0.1);
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    min-block-size: 4.55rem;
+    padding: 0 clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.cpi-public-nav__brand,
+.cpi-public-nav__links a {
+    color: var(--cpi-color-ink);
+    font-weight: 850;
+    text-decoration: none;
+}
+
+.cpi-public-nav__links {
+    align-items: center;
+    display: flex;
+    gap: clamp(1rem, 2.5vw, 2rem);
+}
+
+.cpi-public-nav__button {
+    background: var(--global-palette-btn-bg, var(--cpi-color-primary));
+    color: var(--global-palette-btn, var(--cpi-color-card)) !important;
 }
 
 .cpi-virtual-page__eyebrow {
-    color: #245a70;
+    color: var(--cpi-color-primary);
     font-size: 0.78em;
     font-weight: 700;
     letter-spacing: 0.04em;
@@ -141,12 +1241,472 @@
     text-transform: uppercase;
 }
 
+.cpi-location-hero {
+    background: var(--cpi-color-surface);
+    border-block-end: 1px solid var(--cpi-color-border);
+    border-radius: 0;
+    box-shadow: none;
+    padding: clamp(2.1rem, 4vw, 2.35rem) clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.cpi-location-hero-block {
+    display: grid;
+    gap: 1.25rem;
+    margin-inline: auto;
+    max-inline-size: 76rem;
+}
+
+.cpi-location-hero-block__summary {
+    color: var(--cpi-color-muted);
+    font-size: clamp(1rem, 1.5vw, 1.25rem);
+    line-height: 1.55;
+    margin: 0;
+    max-inline-size: 56rem;
+}
+
+.cpi-location-hero-block__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-block-start: 0.75rem;
+}
+
+.cpi-button {
+    align-items: center;
+    border-radius: var(--cpi-button-radius);
+    display: inline-flex;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.cpi-button.wp-element-button,
+.cpi-public-nav__button.wp-element-button {
+    border-radius: var(--cpi-button-radius);
+}
+
+.cpi-button--primary {
+    background: var(--global-palette-btn-bg, var(--cpi-color-primary));
+    color: var(--global-palette-btn, var(--cpi-color-surface));
+}
+
+.cpi-button--secondary {
+    background: var(--global-palette-btn-bg, var(--cpi-color-primary));
+    color: var(--global-palette-btn, var(--cpi-color-surface));
+}
+
+.cpi-location-hero-block__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.cpi-location-hero-block__chips li {
+    background: var(--cpi-color-soft);
+    border-radius: 999px;
+    color: var(--cpi-color-primary);
+    font-size: 0.78rem;
+    font-weight: 850;
+    letter-spacing: 0.035em;
+    line-height: 1;
+    padding: 0.45rem 0.75rem;
+    text-transform: uppercase;
+}
+
+.cpi-virtual-page__title {
+    color: var(--cpi-color-ink);
+    font-family: var(--cpi-heading-font);
+    font-weight: var(--cpi-heading-weight);
+    font-size: clamp(2.4rem, 5vw, 3.75rem);
+    letter-spacing: 0;
+    line-height: 0.98;
+    margin-block: 0.2rem 1rem;
+}
+
+.cpi-section-heading {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.cpi-section-heading h2 {
+    font-family: var(--cpi-heading-font);
+    font-size: clamp(1.5rem, 3vw, 2.4rem);
+    font-weight: 800;
+    line-height: 1;
+    margin: 0;
+}
+
 .cpi-virtual-page__section {
-    margin-block-start: 1.75rem;
+    margin-inline: auto;
+    max-inline-size: 76rem;
+    padding: clamp(2rem, 4vw, 3.5rem) 0;
+    width: 100%;
+}
+
+.cpi-location-context-section {
+    border-block-end: 1px solid var(--cpi-color-border);
+}
+
+.cpi-location-local-context {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.cpi-location-local-context__main,
+.cpi-location-local-context__note {
+    background: var(--cpi-color-surface);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    padding: clamp(1.15rem, 2.5vw, 1.6rem);
+}
+
+.cpi-location-local-context__note {
+    background: var(--cpi-color-soft);
+}
+
+.cpi-location-local-context h2 {
+    font-family: var(--cpi-heading-font);
+    font-size: clamp(1.7rem, 3vw, 2.25rem);
+    font-weight: 700;
+    line-height: 1.05;
+    margin-block: 0.3rem 1rem;
+}
+
+@media (max-width: 1280px) {
+    .cpi-virtual-page__section {
+        max-inline-size: calc(100% - 5rem);
+    }
+}
+
+@media (max-width: 720px) {
+    .cpi-public-nav,
+    .cpi-public-nav__links,
+    .cpi-location-hero-block__actions {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .cpi-virtual-page__section {
+        max-inline-size: calc(100% - 2rem);
+    }
+}
+
+.cpi-location-local-context p {
+    line-height: 1.65;
+    margin-block-end: 0;
+}
+
+@media (min-width: 860px) {
+    .cpi-location-local-context {
+        grid-template-columns: minmax(0, 2.2fr) minmax(18rem, 1fr);
+    }
 }
 
 .cpi-virtual-page__note {
-    background: #fffdf8;
-    border-left: 4px solid #d8bd8a;
+    background: var(--cpi-color-surface);
+    border: 1px solid color-mix(in srgb, var(--cpi-color-warning) 42%, transparent);
+    border-left: 4px solid var(--cpi-color-warning);
+    border-radius: var(--cpi-radius);
+    margin-block-end: clamp(2rem, 4vw, 3.5rem);
+    padding: 1.25rem;
+}
+
+.cpi-location-campaign-section {
+    padding-block-start: 0;
+}
+
+.cpi-location-campaign-cta {
+    align-items: center;
+    background: var(--cpi-color-primary);
+    border-radius: var(--cpi-radius);
+    color: var(--cpi-color-card);
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: clamp(1.25rem, 2.8vw, 1.75rem);
+}
+
+.cpi-location-campaign-cta h2 {
+    color: var(--cpi-color-card);
+    font-family: var(--cpi-heading-font);
+    font-size: clamp(1.35rem, 2vw, 1.8rem);
+    line-height: 1.1;
+    margin: 0 0 0.4rem;
+}
+
+.cpi-location-campaign-cta p {
+    color: color-mix(in srgb, var(--cpi-color-card) 78%, transparent);
+    margin: 0;
+    max-inline-size: 56rem;
+}
+
+.cpi-location-campaign-cta__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    justify-content: flex-end;
+}
+
+.cpi-location-campaign-cta .cpi-button--secondary {
+    background: var(--global-palette-btn-bg, var(--cpi-color-card));
+    border-color: transparent;
+    color: var(--global-palette-btn, var(--cpi-color-primary));
+}
+
+.cpi-location-campaign-cta .cpi-button--primary {
+    background: var(--global-palette-btn-bg, var(--cpi-color-card));
+    color: var(--global-palette-btn, var(--cpi-color-primary));
+}
+
+.cpi-location-public-footer {
+    background: var(--cpi-color-ink);
+    color: color-mix(in srgb, var(--cpi-color-card) 72%, transparent);
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: minmax(0, 1.4fr) minmax(10rem, 0.7fr) minmax(16rem, 1fr);
+    padding: clamp(2rem, 5vw, 3.5rem) max(clamp(1.25rem, 3vw, 2.5rem), calc((100vw - 76rem) / 2));
+}
+
+.cpi-location-public-footer h2,
+.cpi-location-public-footer h3 {
+    color: var(--cpi-color-card);
+    font-family: var(--cpi-heading-font);
+    margin: 0 0 0.7rem;
+}
+
+.cpi-location-public-footer a {
+    color: rgba(255, 253, 248, 0.82);
+    display: block;
+    font-weight: 800;
+    margin-block: 0.35rem;
+    text-decoration: none;
+}
+
+.cpi-location-public-footer__label {
+    color: var(--cpi-color-accent);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    margin: 0 0 0.7rem;
+    text-transform: uppercase;
+}
+
+.cpi-location-public-footer__panel {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
     padding: 1rem;
+}
+
+/* Theme bridge: keep plugin blocks aligned with Kadence/Customizer global styles. */
+body.cpi-location-route,
+.cpi-virtual-page {
+    background: var(--cpi-color-page);
+    color: var(--cpi-color-ink);
+    font-family: var(--cpi-body-font);
+}
+
+.cpi-location-module,
+.cpi-postcode-area-module,
+.cpi-location-chart,
+.cpi-postcode-area-chart,
+.cpi-location-data-studio,
+.cpi-postcode-area-data-studio,
+.cpi-location-local-context__main,
+.cpi-location-local-context__note,
+.cpi-virtual-page__note,
+.cpi-location-article-card,
+.cpi-postcode-area-article-card,
+.cpi-location-supporting-evidence--market,
+.cpi-location-supporting-evidence--trade_work_activity {
+    background: var(--cpi-color-surface);
+    border-color: var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    color: var(--cpi-color-ink);
+}
+
+.cpi-location-hero,
+.cpi-public-nav {
+    background: color-mix(in srgb, var(--cpi-color-surface) 96%, transparent);
+    border-color: var(--cpi-color-border);
+}
+
+.cpi-location-module__title,
+.cpi-postcode-area-module__title,
+.cpi-location-module--executive_answer .cpi-location-module__title,
+.cpi-location-chart__title,
+.cpi-postcode-area-chart__title,
+.cpi-virtual-page__title,
+.cpi-section-heading h2,
+.cpi-location-local-context h2,
+.cpi-location-campaign-cta h2,
+.cpi-location-public-footer h2,
+.cpi-location-public-footer h3,
+.cpi-location-supporting-evidence--epc_status .cpi-location-supporting-evidence__eyebrow {
+    color: var(--cpi-color-ink);
+    font-family: var(--cpi-heading-font);
+}
+
+.cpi-location-module__description,
+.cpi-postcode-area-module__description,
+.cpi-location-chart__description,
+.cpi-postcode-area-chart__description,
+.cpi-location-hero-block__summary,
+.cpi-location-article-card p:not([class]),
+.cpi-postcode-area-article-card p:not([class]),
+.cpi-location-local-context p {
+    color: var(--cpi-color-muted);
+}
+
+.cpi-location-module__eyebrow,
+.cpi-postcode-area-module__eyebrow,
+.cpi-virtual-page__eyebrow,
+.cpi-location-data-studio__eyebrow,
+.cpi-postcode-area-data-studio__eyebrow,
+.cpi-location-control-group__label,
+.cpi-postcode-area-control-group__label,
+.cpi-location-supporting-evidence__eyebrow,
+.cpi-location-supporting-card__title,
+.cpi-postcode-area-supporting-card__title,
+.cpi-location-article-card__topic,
+.cpi-postcode-area-article-card__topic,
+.cpi-location-public-footer__label {
+    color: var(--cpi-color-primary);
+}
+
+.cpi-location-module__headline,
+.cpi-postcode-area-module__headline,
+.cpi-location-supporting-card__note,
+.cpi-virtual-page__note {
+    background: var(--cpi-color-card);
+    border-color: color-mix(in srgb, var(--cpi-color-warning) 70%, transparent);
+    border-left-color: var(--cpi-color-warning);
+    color: var(--cpi-color-ink);
+}
+
+.cpi-button--primary,
+.cpi-public-nav__button,
+.cpi-location-campaign-cta {
+    background: var(--global-palette-btn-bg, var(--cpi-color-primary));
+    color: var(--global-palette-btn, var(--cpi-color-surface));
+}
+
+.cpi-button--secondary,
+.cpi-location-campaign-cta .cpi-button--primary {
+    background: var(--global-palette-btn-bg, var(--cpi-color-primary));
+    color: var(--global-palette-btn, var(--cpi-color-surface));
+}
+
+.cpi-location-hero-block__chips li,
+.cpi-location-select__icon,
+.cpi-postcode-area-select__icon,
+.cpi-location-local-context__note,
+.cpi-location-supporting-card--comparison {
+    background: var(--cpi-color-soft);
+    color: var(--cpi-color-primary);
+}
+
+.cpi-location-select__button,
+.cpi-postcode-area-select__button,
+.cpi-location-control-select,
+.cpi-postcode-area-control-select {
+    background-color: var(--cpi-color-card) !important;
+    border-color: var(--cpi-color-border);
+    color: var(--cpi-color-ink) !important;
+}
+
+.cpi-location-select__button:focus-visible,
+.cpi-postcode-area-select__button:focus-visible,
+.cpi-select--open .cpi-location-select__button,
+.cpi-select--open .cpi-postcode-area-select__button {
+    border-color: var(--cpi-color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--cpi-color-accent) 55%, transparent);
+}
+
+.cpi-location-select__menu,
+.cpi-postcode-area-select__menu {
+    background: var(--cpi-color-card);
+    border-color: color-mix(in srgb, var(--cpi-color-primary) 22%, transparent);
+}
+
+.cpi-location-select__option,
+.cpi-postcode-area-select__option {
+    background: var(--cpi-color-card);
+    border-radius: 0 !important;
+    color: var(--cpi-color-ink);
+    line-height: 1.25;
+    padding: 0.5rem 0.95rem !important;
+}
+
+.cpi-location-select__option:hover,
+.cpi-postcode-area-select__option:hover {
+    background: color-mix(in srgb, var(--cpi-color-primary) 8%, var(--cpi-color-card)) !important;
+    color: var(--cpi-color-ink);
+}
+
+.cpi-location-select__option[aria-selected="true"],
+.cpi-postcode-area-select__option[aria-selected="true"] {
+    background: color-mix(in srgb, var(--cpi-color-primary) 14%, var(--cpi-color-card)) !important;
+    color: var(--cpi-color-ink);
+}
+
+.cpi-location-select__icon::before,
+.cpi-postcode-area-select__icon::before {
+    border-color: var(--cpi-color-primary);
+}
+
+.cpi-location-control-reset,
+.cpi-postcode-area-control-reset {
+    background: var(--cpi-color-card);
+    border-color: color-mix(in srgb, var(--cpi-color-primary) 28%, transparent);
+    color: var(--cpi-color-primary);
+}
+
+.cpi-location-bar__fill,
+.cpi-postcode-area-bar__fill,
+.cpi-location-chart-bar__bar,
+.cpi-postcode-area-chart-bar__bar {
+    background: var(--cpi-color-primary);
+}
+
+.cpi-location-chart--echarts-ready [data-cpi-echart],
+.cpi-postcode-area-chart--echarts-ready [data-cpi-echart] {
+    color: var(--cpi-color-ink);
+}
+
+.cpi-virtual-page__section,
+.cpi-location-hero-block,
+.cpi-location-public-footer {
+    max-inline-size: var(--cpi-container-width);
+}
+
+.cpi-location-public-footer {
+    background: color-mix(in srgb, var(--cpi-color-ink) 92%, black);
+    color: color-mix(in srgb, var(--cpi-color-surface) 72%, transparent);
+}
+
+.cpi-location-public-footer h2,
+.cpi-location-public-footer h3 {
+    color: var(--cpi-color-surface);
+}
+
+.cpi-location-public-footer a {
+    color: color-mix(in srgb, var(--cpi-color-surface) 82%, transparent);
+}
+
+@media (max-width: 860px) {
+    .cpi-location-data-studio__status,
+    .cpi-location-campaign-cta,
+    .cpi-location-public-footer {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cpi-location-control-reset,
+    .cpi-postcode-area-control-reset,
+    .cpi-location-campaign-cta__actions {
+        justify-self: start;
+        justify-content: flex-start;
+    }
 }
