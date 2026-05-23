@@ -1352,6 +1352,112 @@ body.cpi-postcode-area-route .content-area {
     margin: 0;
 }
 
+.cpi-near-me-search {
+    align-items: end;
+    background: var(--cpi-color-card);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr);
+    padding: clamp(1rem, 2vw, 1.35rem);
+}
+
+.cpi-near-me-search--hero {
+    margin-block-start: 0.25rem;
+}
+
+.cpi-near-me-search__copy {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.cpi-near-me-search__label {
+    color: var(--cpi-color-ink);
+    font-family: var(--cpi-heading-font);
+    font-size: 1.08rem;
+    font-weight: var(--cpi-heading-weight);
+    line-height: 1.25;
+    margin: 0;
+}
+
+.cpi-near-me-search__hint,
+.cpi-near-me-search__message {
+    color: var(--cpi-color-muted);
+    font-size: 0.92rem;
+    line-height: 1.45;
+    margin: 0;
+}
+
+.cpi-near-me-search__form {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: minmax(10rem, 1fr) auto;
+}
+
+.cpi-near-me-search__input {
+    background: var(--cpi-color-surface);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-button-radius);
+    color: var(--cpi-color-ink);
+    font: inherit;
+    inline-size: 100%;
+    min-block-size: 2.85rem;
+    padding: 0.7rem 1rem;
+    text-transform: uppercase;
+}
+
+.cpi-near-me-search__input:focus {
+    border-color: var(--cpi-color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--cpi-color-accent) 45%, transparent);
+    outline: none;
+}
+
+.cpi-near-me-search__input[aria-invalid="true"] {
+    border-color: color-mix(in srgb, var(--cpi-color-warning) 70%, var(--cpi-color-border));
+}
+
+.cpi-near-me-search__button {
+    min-block-size: 2.85rem;
+    padding-inline: 1.25rem;
+}
+
+.cpi-near-me-search__message:empty {
+    display: none;
+}
+
+.cpi-postcode-area-missing {
+    background: var(--cpi-color-surface);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    margin-block: clamp(2rem, 5vw, 4rem);
+    padding: clamp(1.5rem, 3vw, 2rem);
+}
+
+.cpi-postcode-area-missing .cpi-near-me-search {
+    margin-block-start: 1.25rem;
+}
+
+@media (min-width: 760px) {
+    .cpi-near-me-search {
+        grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.8fr);
+    }
+
+    .cpi-near-me-search__message {
+        grid-column: 2;
+    }
+}
+
+@media (max-width: 620px) {
+    .cpi-near-me-search__form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .cpi-near-me-search__button {
+        justify-self: start;
+    }
+}
+
 .cpi-location-hero-block__actions {
     display: flex;
     flex-wrap: wrap;

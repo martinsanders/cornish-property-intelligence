@@ -154,6 +154,7 @@ final class PostcodeAreaVirtualRoute
         $modules = do_shortcode('[cp_postcode_area_modules]');
         $guides = do_shortcode('[cp_postcode_area_guides]');
         $privacyNote = do_shortcode('[cp_postcode_area_privacy_note]');
+        $search = do_shortcode('[cp_near_me_search context="hero"]');
         $heroChips = $this->heroChips($payload);
         $heroActions = $this->heroActions($payload);
 
@@ -171,6 +172,10 @@ final class PostcodeAreaVirtualRoute
 
                     <?php if ($summary !== '') : ?>
                         <?php echo $summary; ?>
+                    <?php endif; ?>
+
+                    <?php if ($search !== '') : ?>
+                        <?php echo $search; ?>
                     <?php endif; ?>
 
                     <?php if ($heroChips !== '') : ?>
@@ -379,7 +384,7 @@ final class PostcodeAreaVirtualRoute
         ob_start();
         ?>
         <main class="cpi-virtual-page cpi-postcode-area-virtual-page">
-            <section class="cpi-virtual-page__section cpi-notice">
+            <section class="cpi-virtual-page__section cpi-notice cpi-postcode-area-missing">
                 <p class="cpi-virtual-page__eyebrow">
                     <?php echo esc_html__('Near Me Intelligence', 'cornish-property-intelligence'); ?>
                 </p>
@@ -393,6 +398,7 @@ final class PostcodeAreaVirtualRoute
                     ?>
                 </p>
                 <p><?php echo esc_html__('This page fails closed until a public-safe postcode-area or postcode-district export exists.', 'cornish-property-intelligence'); ?></p>
+                <?php echo do_shortcode('[cp_near_me_search context="missing"]'); ?>
             </section>
         </main>
         <?php

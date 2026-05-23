@@ -1165,6 +1165,59 @@
         updateModule(module);
     }
 
+    function normaliseNearMeSearchInput(value) {
+        const compact = String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+        if (compact === '') {
+            return null;
+        }
+
+        const match = compact.match(/^([A-Z]{1,2}[0-9][0-9A-Z]?)([0-9])?(?:[A-Z]{2})?$/);
+
+        if (!match) {
+            return null;
+        }
+
+        const district = match[1].toLowerCase();
+        const sector = match[2] ? `-${match[2]}` : '';
+
+        return `${district}${sector}`;
+    }
+
+    function showNearMeSearchMessage(form, message) {
+        const container = form.closest('.cpi-near-me-search') || form;
+        const output = container.querySelector('[data-cpi-near-me-search-message]');
+        const input = form.querySelector('[data-cpi-near-me-search-input]');
+
+        if (output) {
+            output.textContent = message;
+        }
+
+        if (input) {
+            input.setAttribute('aria-invalid', message === '' ? 'false' : 'true');
+        }
+    }
+
+    function submitNearMeSearch(form) {
+        const input = form.querySelector('[data-cpi-near-me-search-input]');
+        const base = form.dataset.cpiNearMeBase || '/near-me/';
+        const areaKey = normaliseNearMeSearchInput(input ? input.value : '');
+
+        if (!areaKey) {
+            showNearMeSearchMessage(form, 'Use a broad postcode area such as TR15 or TR15 2.');
+
+            if (input) {
+                input.focus();
+            }
+
+            return;
+        }
+
+        showNearMeSearchMessage(form, '');
+        const separator = base.endsWith('/') ? '' : '/';
+        window.location.assign(`${base}${separator}${areaKey}/`);
+    }
+
     function init(root) {
         root.querySelectorAll('[data-cpi-module-root]').forEach(updateModule);
 
@@ -1205,6 +1258,17 @@
             if (select) {
                 activateSelect(select);
             }
+        });
+
+        root.addEventListener('submit', (event) => {
+            const form = event.target.closest('[data-cpi-near-me-search]');
+
+            if (!form) {
+                return;
+            }
+
+            event.preventDefault();
+            submitNearMeSearch(form);
         });
 
         root.querySelectorAll('[data-cpi-control-select]').forEach(syncSelectWrapper);

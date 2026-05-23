@@ -28,6 +28,8 @@ final class PostcodeAreaShortcodes
         add_shortcode('cp_postcode_area_modules', [$this, 'modules']);
         add_shortcode('cp_postcode_area_guides', [$this, 'guides']);
         add_shortcode('cp_postcode_area_privacy_note', [$this, 'privacyNote']);
+        add_shortcode('cp_postcode_area_search', [$this, 'search']);
+        add_shortcode('cp_near_me_search', [$this, 'search']);
     }
 
     /**
@@ -89,6 +91,18 @@ final class PostcodeAreaShortcodes
         $payload = $this->payload($attributes);
 
         return $this->renderer->privacyNote($payload);
+    }
+
+    /**
+     * @param array<string, mixed>|string $attributes
+     */
+    public function search(array|string $attributes = []): string
+    {
+        $attributes = shortcode_atts(['area' => '', 'context' => 'inline'], is_array($attributes) ? $attributes : [], 'cp_near_me_search');
+        $payload = $this->payload($attributes);
+        $context = is_scalar($attributes['context']) ? sanitize_key((string) $attributes['context']) : 'inline';
+
+        return $this->renderer->search($payload, $context);
     }
 
     /**

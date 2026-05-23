@@ -155,6 +155,49 @@ final class PostcodeAreaRenderer
         return '<p class="cpi-postcode-area-privacy-note cpi-evidence-note">'.esc_html($note).'</p>';
     }
 
+    /**
+     * @param array<string, mixed>|null $payload
+     */
+    public function search(?array $payload, string $context = 'inline'): string
+    {
+        $context = sanitize_html_class($context !== '' ? $context : 'inline');
+        $identifier = wp_unique_id('cpi_near_me_search_');
+        $label = $payload !== null
+            ? 'Search another postcode area'
+            : 'Search by postcode area';
+        $hint = 'Use a broad postcode area such as TR15, TR15 2 or TR15-2.';
+
+        ob_start();
+        ?>
+        <section class="cpi-near-me-search cpi-near-me-search--<?php echo esc_attr($context); ?>" aria-label="<?php echo esc_attr__('Near Me postcode area search', 'cornish-property-intelligence'); ?>">
+            <div class="cpi-near-me-search__copy">
+                <p class="cpi-near-me-search__label"><?php echo esc_html($label); ?></p>
+                <p class="cpi-near-me-search__hint"><?php echo esc_html($hint); ?></p>
+            </div>
+            <form class="cpi-near-me-search__form" action="<?php echo esc_url(home_url('/near-me/')); ?>" method="get" data-cpi-near-me-search data-cpi-near-me-base="<?php echo esc_url(home_url('/near-me/')); ?>" novalidate>
+                <label class="screen-reader-text" for="<?php echo esc_attr($identifier); ?>"><?php echo esc_html__('Postcode district or sector', 'cornish-property-intelligence'); ?></label>
+                <input
+                    id="<?php echo esc_attr($identifier); ?>"
+                    class="cpi-near-me-search__input"
+                    type="text"
+                    inputmode="text"
+                    autocomplete="postal-code"
+                    autocapitalize="characters"
+                    spellcheck="false"
+                    placeholder="<?php echo esc_attr__('TR15 2', 'cornish-property-intelligence'); ?>"
+                    data-cpi-near-me-search-input
+                >
+                <button class="cpi-button cpi-button--primary cpi-near-me-search__button wp-element-button" type="submit">
+                    <?php echo esc_html__('Search', 'cornish-property-intelligence'); ?>
+                </button>
+            </form>
+            <p class="cpi-near-me-search__message" data-cpi-near-me-search-message role="status" aria-live="polite"></p>
+        </section>
+        <?php
+
+        return (string) ob_get_clean();
+    }
+
     private function text(mixed $value): string
     {
         return is_scalar($value) ? trim((string) $value) : '';
