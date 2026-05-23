@@ -202,7 +202,7 @@ final class Plugin
         return ':root {'."\n    ".implode("\n    ", $declarations)."\n".'}';
     }
 
-    private static function assetVersion(string $path): string
+    public static function assetVersion(string $path): string
     {
         $file = CPI_PLUGIN_DIR.$path;
 

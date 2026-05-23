@@ -32,13 +32,13 @@ final class SettingsPage
             'cornish-property-intelligence-admin',
             CPI_PLUGIN_URL.'assets/admin.css',
             ['wp-color-picker'],
-            '0.1.0'
+            Plugin::assetVersion('assets/admin.css')
         );
         wp_enqueue_script(
             'cornish-property-intelligence-admin',
             CPI_PLUGIN_URL.'assets/admin.js',
             ['wp-color-picker'],
-            '0.1.0',
+            Plugin::assetVersion('assets/admin.js'),
             true
         );
         wp_localize_script('cornish-property-intelligence-admin', 'cpiAdminDesign', [

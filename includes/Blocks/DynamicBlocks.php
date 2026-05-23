@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace CornishPropertyIntelligence\Blocks;
 
+use CornishPropertyIntelligence\Plugin;
 use CornishPropertyIntelligence\PublicData\LocationRepository;
 use CornishPropertyIntelligence\PublicData\PostcodeAreaRepository;
 use CornishPropertyIntelligence\Rendering\LocationRenderer;
@@ -181,11 +182,16 @@ final class DynamicBlocks
             return;
         }
 
+        $handle = 'cornish-property-intelligence-block-editor';
+        $version = Plugin::assetVersion('assets/frontend.css');
+
+        $this->deregisterStaleStyle($handle, $version);
+
         wp_enqueue_style(
-            'cornish-property-intelligence-block-editor',
+            $handle,
             CPI_PLUGIN_URL.'assets/frontend.css',
             [],
-            $this->assetVersion('assets/frontend.css')
+            $version
         );
     }
 
@@ -463,17 +469,51 @@ final class DynamicBlocks
 
     private function registerEditorScript(): void
     {
-        if (wp_script_is('cornish-property-intelligence-blocks', 'registered')) {
-            return;
+        $handle = 'cornish-property-intelligence-blocks';
+        $version = Plugin::assetVersion('assets/blocks.js');
+
+        if (wp_script_is($handle, 'registered')) {
+            global $wp_scripts;
+
+            $registeredVersion = '';
+
+            if (isset($wp_scripts->registered[$handle]) && is_object($wp_scripts->registered[$handle])) {
+                $registeredVersion = (string) ($wp_scripts->registered[$handle]->ver ?? '');
+            }
+
+            if ($registeredVersion === $version) {
+                return;
+            }
+
+            wp_deregister_script($handle);
         }
 
         wp_register_script(
-            'cornish-property-intelligence-blocks',
+            $handle,
             CPI_PLUGIN_URL.'assets/blocks.js',
             ['wp-blocks', 'wp-components', 'wp-element', 'wp-block-editor', 'wp-i18n'],
-            $this->assetVersion('assets/blocks.js'),
+            $version,
             true
         );
+    }
+
+    private function deregisterStaleStyle(string $handle, string $version): void
+    {
+        if (! wp_style_is($handle, 'registered')) {
+            return;
+        }
+
+        global $wp_styles;
+
+        $registeredVersion = '';
+
+        if (isset($wp_styles->registered[$handle]) && is_object($wp_styles->registered[$handle])) {
+            $registeredVersion = (string) ($wp_styles->registered[$handle]->ver ?? '');
+        }
+
+        if ($registeredVersion !== $version) {
+            wp_deregister_style($handle);
+        }
     }
 
     /**
@@ -596,10 +636,4 @@ final class DynamicBlocks
         return implode("\n\n", $blocks);
     }
 
-    private function assetVersion(string $path): string
-    {
-        $file = CPI_PLUGIN_DIR.$path;
-
-        return is_readable($file) ? (string) filemtime($file) : '0.1.0';
-    }
 }
