@@ -28,6 +28,7 @@ final class LocationShortcodes
         add_shortcode('cp_location_modules', [$this, 'modules']);
         add_shortcode('cp_location_campaign_cta', [$this, 'campaignCta']);
         add_shortcode('cp_location_privacy_note', [$this, 'privacyNote']);
+        add_shortcode('cp_location_evidence_note', [$this, 'privacyNote']);
     }
 
     /**

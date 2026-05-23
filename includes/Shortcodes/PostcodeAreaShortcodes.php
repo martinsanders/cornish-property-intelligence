@@ -29,6 +29,11 @@ final class PostcodeAreaShortcodes
         add_shortcode('cp_postcode_area_guides', [$this, 'guides']);
         add_shortcode('cp_postcode_area_privacy_note', [$this, 'privacyNote']);
         add_shortcode('cp_postcode_area_search', [$this, 'search']);
+        add_shortcode('cp_near_me_title', [$this, 'title']);
+        add_shortcode('cp_near_me_summary', [$this, 'summary']);
+        add_shortcode('cp_near_me_modules', [$this, 'modules']);
+        add_shortcode('cp_near_me_fallback_journey', [$this, 'guides']);
+        add_shortcode('cp_near_me_evidence_note', [$this, 'privacyNote']);
         add_shortcode('cp_near_me_search', [$this, 'search']);
     }
 

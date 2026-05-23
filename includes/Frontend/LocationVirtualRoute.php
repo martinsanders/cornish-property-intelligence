@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace CornishPropertyIntelligence\Frontend;
 
+use CornishPropertyIntelligence\Plugin;
 use CornishPropertyIntelligence\PublicData\LocationRepository;
 use Throwable;
+use WP_Post;
 
 final class LocationVirtualRoute
 {
@@ -128,6 +130,12 @@ final class LocationVirtualRoute
 
     private function routeMarkup(): string
     {
+        $template = $this->templatePage((int) Plugin::settings()['location_template_page_id']);
+
+        if ($template instanceof WP_Post) {
+            return $this->templateMarkup($template);
+        }
+
         ob_start();
         ?>
         <main class="cpi-virtual-page cpi-location-virtual-page">
@@ -152,6 +160,47 @@ final class LocationVirtualRoute
                 <?php echo do_shortcode('[cp_location_privacy_note]'); ?>
             </section>
 
+        </main>
+        <?php
+
+        return (string) ob_get_clean();
+    }
+
+    private function templatePage(int $pageId): ?WP_Post
+    {
+        if ($pageId <= 0) {
+            return null;
+        }
+
+        $page = get_post($pageId);
+
+        if (! $page instanceof WP_Post || $page->post_type !== 'page' || $page->post_status !== 'publish') {
+            return null;
+        }
+
+        return $page;
+    }
+
+    private function templateMarkup(WP_Post $template): string
+    {
+        global $post;
+
+        $previousPost = $post ?? null;
+        $post = $template;
+        setup_postdata($post);
+        $content = apply_filters('the_content', $template->post_content);
+        wp_reset_postdata();
+
+        if ($previousPost instanceof WP_Post) {
+            $post = $previousPost;
+        }
+
+        ob_start();
+        ?>
+        <main class="cpi-virtual-page cpi-location-virtual-page cpi-virtual-page--template">
+            <div class="cpi-virtual-page__template-content">
+                <?php echo $content; ?>
+            </div>
         </main>
         <?php
 

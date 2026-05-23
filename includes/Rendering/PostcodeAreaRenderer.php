@@ -67,7 +67,7 @@ final class PostcodeAreaRenderer
     /**
      * @param array<string, mixed>|null $payload
      */
-    public function modules(?array $payload): string
+    public function modules(?array $payload, string $moduleType = ''): string
     {
         if ($payload === null) {
             return '';
@@ -76,6 +76,7 @@ final class PostcodeAreaRenderer
         $modules = $this->normaliseModules($payload);
         $modules = $this->withExecutiveAnswerModule($modules, $payload);
         $modules = $this->withAvailabilityModules($modules, $payload);
+        $modules = $this->filterModules($modules, $moduleType);
 
         return $this->modules->render($this->sortModules($modules), 'cpi-location');
     }
@@ -158,21 +159,32 @@ final class PostcodeAreaRenderer
     /**
      * @param array<string, mixed>|null $payload
      */
-    public function search(?array $payload, string $context = 'inline'): string
+    public function search(
+        ?array $payload,
+        string $context = 'inline',
+        string $labelOverride = '',
+        string $placeholderOverride = '',
+        string $buttonOverride = '',
+        bool $showHint = true,
+    ): string
     {
         $context = sanitize_html_class($context !== '' ? $context : 'inline');
         $identifier = wp_unique_id('cpi_near_me_search_');
-        $label = $payload !== null
-            ? 'Search another postcode area'
-            : 'Search by postcode area';
+        $label = $labelOverride !== ''
+            ? $labelOverride
+            : ($payload !== null ? 'Search another postcode area' : 'Search by postcode area');
         $hint = 'Use a broad postcode area such as TR15, TR15 2 or TR15-2.';
+        $placeholder = $placeholderOverride !== '' ? $placeholderOverride : 'TR15 2';
+        $button = $buttonOverride !== '' ? $buttonOverride : 'Search';
 
         ob_start();
         ?>
         <section class="cpi-near-me-search cpi-near-me-search--<?php echo esc_attr($context); ?>" aria-label="<?php echo esc_attr__('Near Me postcode area search', 'cornish-property-intelligence'); ?>">
             <div class="cpi-near-me-search__copy">
                 <p class="cpi-near-me-search__label"><?php echo esc_html($label); ?></p>
-                <p class="cpi-near-me-search__hint"><?php echo esc_html($hint); ?></p>
+                <?php if ($showHint) : ?>
+                    <p class="cpi-near-me-search__hint"><?php echo esc_html($hint); ?></p>
+                <?php endif; ?>
             </div>
             <form class="cpi-near-me-search__form" action="<?php echo esc_url(home_url('/near-me/')); ?>" method="get" data-cpi-near-me-search data-cpi-near-me-base="<?php echo esc_url(home_url('/near-me/')); ?>" novalidate>
                 <label class="screen-reader-text" for="<?php echo esc_attr($identifier); ?>"><?php echo esc_html__('Postcode district or sector', 'cornish-property-intelligence'); ?></label>
@@ -184,11 +196,11 @@ final class PostcodeAreaRenderer
                     autocomplete="postal-code"
                     autocapitalize="characters"
                     spellcheck="false"
-                    placeholder="<?php echo esc_attr__('TR15 2', 'cornish-property-intelligence'); ?>"
+                    placeholder="<?php echo esc_attr($placeholder); ?>"
                     data-cpi-near-me-search-input
                 >
                 <button class="cpi-button cpi-button--primary cpi-near-me-search__button wp-element-button" type="submit">
-                    <?php echo esc_html__('Search', 'cornish-property-intelligence'); ?>
+                    <?php echo esc_html($button); ?>
                 </button>
             </form>
             <p class="cpi-near-me-search__message" data-cpi-near-me-search-message role="status" aria-live="polite"></p>
@@ -485,6 +497,31 @@ final class PostcodeAreaRenderer
             'competent_person' => 'trade_work_activity',
             default => $moduleType,
         };
+    }
+
+    /**
+     * @param array<int|string, mixed> $modules
+     * @return array<int|string, mixed>
+     */
+    private function filterModules(array $modules, string $moduleType): array
+    {
+        $moduleType = sanitize_key($moduleType);
+
+        if ($moduleType === '' || $moduleType === 'all') {
+            return $modules;
+        }
+
+        return array_filter(
+            $modules,
+            function (mixed $module, int|string $key) use ($moduleType): bool {
+                $type = is_array($module)
+                    ? $this->displayModuleType($this->text($module['module_type'] ?? $key))
+                    : $this->displayModuleType((string) $key);
+
+                return $type === $moduleType;
+            },
+            ARRAY_FILTER_USE_BOTH,
+        );
     }
 
     /**

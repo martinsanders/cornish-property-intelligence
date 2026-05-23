@@ -136,10 +136,13 @@ final class LocationRenderer
     /**
      * @param array<string, mixed> $payload
      */
-    public function modules(array $payload): string
+    public function modules(array $payload, string $moduleType = ''): string
     {
+        $selectedModuleType = sanitize_key($moduleType);
         $modules = is_array($payload['modules'] ?? null) ? $this->publicEvidenceModules($payload['modules'], $payload) : [];
-        $articles = array_key_exists('published_articles', $modules) ? '' : $this->associatedArticles($payload);
+        $modules = $this->filterModules($modules, $selectedModuleType);
+        $shouldRenderArticles = in_array($selectedModuleType, ['', 'all', 'published_articles'], true);
+        $articles = $shouldRenderArticles && ! array_key_exists('published_articles', $modules) ? $this->associatedArticles($payload) : '';
 
         if ($modules === [] && $articles === '') {
             return '';
@@ -174,6 +177,29 @@ final class LocationRenderer
         <?php
 
         return (string) ob_get_clean();
+    }
+
+    /**
+     * @param array<string|int, mixed> $modules
+     * @return array<string|int, mixed>
+     */
+    private function filterModules(array $modules, string $moduleType): array
+    {
+        $moduleType = sanitize_key($moduleType);
+
+        if ($moduleType === '' || $moduleType === 'all') {
+            return $modules;
+        }
+
+        return array_filter(
+            $modules,
+            function (mixed $module, string|int $key) use ($moduleType): bool {
+                $type = is_array($module) ? $this->text($module['module_type'] ?? $key) : (string) $key;
+
+                return $type === $moduleType;
+            },
+            ARRAY_FILTER_USE_BOTH,
+        );
     }
 
     /**

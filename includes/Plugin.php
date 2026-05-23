@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CornishPropertyIntelligence;
 
 use CornishPropertyIntelligence\Admin\SettingsPage;
+use CornishPropertyIntelligence\Blocks\DynamicBlocks;
 use CornishPropertyIntelligence\Frontend\LocationVirtualRoute;
 use CornishPropertyIntelligence\Frontend\PostcodeAreaVirtualRoute;
 use CornishPropertyIntelligence\PublicData\LocationRepository;
@@ -42,6 +43,7 @@ final class Plugin
 
         (new LocationShortcodes($locationRepository, $locationRenderer, $noticeRenderer))->register();
         (new PostcodeAreaShortcodes($postcodeAreaRepository, $postcodeAreaRenderer, $noticeRenderer))->register();
+        (new DynamicBlocks($locationRepository, $postcodeAreaRepository, $locationRenderer, $postcodeAreaRenderer, $noticeRenderer))->register();
         (new LocationVirtualRoute($locationRepository))->register();
         (new PostcodeAreaVirtualRoute($postcodeAreaRepository))->register();
     }
@@ -92,6 +94,8 @@ final class Plugin
 
         return [
             'manifest_path' => (string) ($settings['manifest_path'] ?? ''),
+            'location_template_page_id' => (string) absint($settings['location_template_page_id'] ?? 0),
+            'near_me_template_page_id' => (string) absint($settings['near_me_template_page_id'] ?? 0),
             'last_checked_at' => (string) ($settings['last_checked_at'] ?? ''),
             'last_status' => (string) ($settings['last_status'] ?? ''),
             'last_version' => (string) ($settings['last_version'] ?? ''),
@@ -126,6 +130,8 @@ final class Plugin
     {
         update_option(self::OPTION_NAME, [
             'manifest_path' => $settings['manifest_path'] ?? '',
+            'location_template_page_id' => (string) absint($settings['location_template_page_id'] ?? 0),
+            'near_me_template_page_id' => (string) absint($settings['near_me_template_page_id'] ?? 0),
             'last_checked_at' => $settings['last_checked_at'] ?? '',
             'last_status' => $settings['last_status'] ?? '',
             'last_version' => $settings['last_version'] ?? '',

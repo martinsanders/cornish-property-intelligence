@@ -77,6 +77,8 @@ final class SettingsPage
 
         return [
             'manifest_path' => sanitize_text_field((string) ($input['manifest_path'] ?? $current['manifest_path'])),
+            'location_template_page_id' => (string) absint($input['location_template_page_id'] ?? $current['location_template_page_id']),
+            'near_me_template_page_id' => (string) absint($input['near_me_template_page_id'] ?? $current['near_me_template_page_id']),
             'last_checked_at' => $current['last_checked_at'],
             'last_status' => $current['last_status'],
             'last_version' => $current['last_version'],
@@ -119,6 +121,8 @@ final class SettingsPage
             check_admin_referer('cpi_test_manifest');
 
             $settings['manifest_path'] = sanitize_text_field((string) ($_POST[Plugin::OPTION_NAME]['manifest_path'] ?? $settings['manifest_path']));
+            $settings['location_template_page_id'] = (string) absint($_POST[Plugin::OPTION_NAME]['location_template_page_id'] ?? $settings['location_template_page_id']);
+            $settings['near_me_template_page_id'] = (string) absint($_POST[Plugin::OPTION_NAME]['near_me_template_page_id'] ?? $settings['near_me_template_page_id']);
             $settings['design_primary_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_primary_color'] ?? $settings['design_primary_color']);
             $settings['design_accent_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_accent_color'] ?? $settings['design_accent_color']);
             $settings['design_background_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_background_color'] ?? $settings['design_background_color']);
@@ -181,7 +185,7 @@ final class SettingsPage
                 <?php echo esc_html__('This proof-of-concept reads Laravel public-safe static JSON exports only. It must not connect to the Laravel private database.', 'cornish-property-intelligence'); ?>
             </p>
             <p>
-                <?php echo esc_html__('Location data can be placed inside normal WordPress or Kadence-designed pages using Cornish Property dynamic blocks/shortcodes. No manual WordPress page is needed per location.', 'cornish-property-intelligence'); ?>
+                <?php echo esc_html__('Location and Near Me data can be placed inside normal WordPress or Kadence-designed pages using Cornish Property dynamic blocks. Shortcodes remain available as a fallback. No manual WordPress page is needed per location or postcode area.', 'cornish-property-intelligence'); ?>
             </p>
 
             <nav class="nav-tab-wrapper cpi-settings-tabs" aria-label="<?php echo esc_attr__('Cornish Property Intelligence settings sections', 'cornish-property-intelligence'); ?>">
@@ -241,6 +245,37 @@ final class SettingsPage
             </tbody>
         </table>
 
+        <h2><?php echo esc_html__('Editable Route Templates', 'cornish-property-intelligence'); ?></h2>
+        <p>
+            <?php echo esc_html__('Select existing WordPress pages to act as editable templates for virtual Location and Near Me routes. Template pages should use Cornish Property dynamic blocks inside normal WordPress or Kadence layouts. Shortcode blocks are also supported as a fallback. WordPress still reads static JSON only and does not connect to the Laravel database.', 'cornish-property-intelligence'); ?>
+        </p>
+        <table class="form-table" role="presentation">
+            <tbody>
+            <tr>
+                <th scope="row">
+                    <label for="cpi_location_template_page_id"><?php echo esc_html__('Location template page', 'cornish-property-intelligence'); ?></label>
+                </th>
+                <td>
+                    <?php $this->renderPageSelect($settings, 'location_template_page_id', 'cpi_location_template_page_id'); ?>
+                    <p class="description">
+                        <?php echo esc_html__('Use the shared Cornish Property Content, Module and Evidence blocks inside your WordPress or Kadence layout. Location shortcode equivalents such as [cp_location_title] remain available. Leave unset to use the plugin fallback layout.', 'cornish-property-intelligence'); ?>
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    <label for="cpi_near_me_template_page_id"><?php echo esc_html__('Near Me template page', 'cornish-property-intelligence'); ?></label>
+                </th>
+                <td>
+                    <?php $this->renderPageSelect($settings, 'near_me_template_page_id', 'cpi_near_me_template_page_id'); ?>
+                    <p class="description">
+                        <?php echo esc_html__('Use the shared Cornish Property Search, Content, Module and Evidence blocks inside your WordPress or Kadence layout. Near Me shortcode equivalents such as [cp_near_me_search] remain available. Leave unset to use the plugin fallback layout.', 'cornish-property-intelligence'); ?>
+                    </p>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
         <h2><?php echo esc_html__('Manifest Status', 'cornish-property-intelligence'); ?></h2>
         <table class="widefat striped" style="max-width: 760px;">
             <tbody>
@@ -269,9 +304,23 @@ final class SettingsPage
 
         <h2><?php echo esc_html__('Routing Note', 'cornish-property-intelligence'); ?></h2>
         <p>
-            <?php echo esc_html__('Normal WordPress pages may be used for homepage, /near-me, /locations and /articles index pages. Kadence or the block editor should own layout and visual design, while Cornish Property blocks provide safe JSON-backed data. Later, /locations/{slug}/ and /near-me/{area_key}/ can infer context from virtual routes and render the same block/template approach. Do not create a manual WordPress page per location, postcode sector or postcode district.', 'cornish-property-intelligence'); ?>
+            <?php echo esc_html__('Normal WordPress pages may be used for homepage, /near-me, /locations and /articles index pages. Kadence or the block editor should own layout and visual design, while Cornish Property blocks provide safe JSON-backed data. The /locations/{slug}/ and /near-me/{area_key}/ virtual routes infer context and can render selected block-based template pages. Do not create a manual WordPress page per location, postcode sector or postcode district.', 'cornish-property-intelligence'); ?>
         </p>
         <?php
+    }
+
+    /**
+     * @param array<string, string> $settings
+     */
+    private function renderPageSelect(array $settings, string $key, string $id): void
+    {
+        wp_dropdown_pages([
+            'name' => Plugin::OPTION_NAME.'['.$key.']',
+            'id' => $id,
+            'selected' => (int) ($settings[$key] ?? 0),
+            'show_option_none' => __('Use plugin fallback layout', 'cornish-property-intelligence'),
+            'option_none_value' => '0',
+        ]);
     }
 
     /**
