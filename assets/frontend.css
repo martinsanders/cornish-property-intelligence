@@ -19,7 +19,16 @@
     --cpi-heading-weight: var(--global-heading-font-weight, 700);
     --cpi-strong-weight: var(--global-body-font-weight-bold, 700);
     --cpi-metric-value-size: clamp(1.45rem, 2vw, 2rem);
-    --cpi-chart-grid-color: color-mix(in srgb, var(--cpi-color-muted) 22%, transparent);
+    --cpi-chart-grid-color: #d7dee2;
+    --cpi-chart-series-one-color: #245a70;
+    --cpi-chart-series-two-color: #1f3f6d;
+    --cpi-chart-series-three-color: #9ec7bd;
+    --cpi-chart-series-four-color: #c7973e;
+    --cpi-chart-series-five-color: #d6674f;
+    --cpi-chart-market-sales-color: #3f6675;
+    --cpi-chart-market-comparison-sales-color: #b9c6cc;
+    --cpi-chart-market-price-color: #cc735d;
+    --cpi-chart-market-comparison-price-color: #ecd1c8;
     --cpi-radius: var(--global-border-radius, 8px);
     --cpi-button-radius: var(--global-button-border-radius, var(--global-border-radius, 100px));
     --cpi-pill-radius: 999px;
@@ -808,9 +817,9 @@ button.cpi-postcode-area-control-chip {
 
 .cpi-location-chart__status,
 .cpi-postcode-area-chart__status {
-    color: var(--cpi-color-primary);
-    font-size: 0.84rem;
-    font-weight: 700;
+    color: var(--cpi-color-muted);
+    font-size: 0.82rem;
+    font-weight: 650;
     margin: 0.25rem 0 0;
 }
 

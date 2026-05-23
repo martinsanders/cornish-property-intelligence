@@ -86,6 +86,16 @@ final class SettingsPage
             'design_surface_color' => $this->sanitizeColor($input['design_surface_color'] ?? $current['design_surface_color']),
             'design_text_color' => $this->sanitizeColor($input['design_text_color'] ?? $current['design_text_color']),
             'design_muted_text_color' => $this->sanitizeColor($input['design_muted_text_color'] ?? $current['design_muted_text_color']),
+            'design_chart_series_one_color' => $this->sanitizeColor($input['design_chart_series_one_color'] ?? $current['design_chart_series_one_color']),
+            'design_chart_series_two_color' => $this->sanitizeColor($input['design_chart_series_two_color'] ?? $current['design_chart_series_two_color']),
+            'design_chart_series_three_color' => $this->sanitizeColor($input['design_chart_series_three_color'] ?? $current['design_chart_series_three_color']),
+            'design_chart_series_four_color' => $this->sanitizeColor($input['design_chart_series_four_color'] ?? $current['design_chart_series_four_color']),
+            'design_chart_series_five_color' => $this->sanitizeColor($input['design_chart_series_five_color'] ?? $current['design_chart_series_five_color']),
+            'design_chart_grid_color' => $this->sanitizeColor($input['design_chart_grid_color'] ?? $current['design_chart_grid_color']),
+            'design_market_sales_color' => $this->sanitizeColor($input['design_market_sales_color'] ?? $current['design_market_sales_color']),
+            'design_market_comparison_sales_color' => $this->sanitizeColor($input['design_market_comparison_sales_color'] ?? $current['design_market_comparison_sales_color']),
+            'design_market_price_color' => $this->sanitizeColor($input['design_market_price_color'] ?? $current['design_market_price_color']),
+            'design_market_comparison_price_color' => $this->sanitizeColor($input['design_market_comparison_price_color'] ?? $current['design_market_comparison_price_color']),
             'design_heading_font' => sanitize_text_field((string) ($input['design_heading_font'] ?? $current['design_heading_font'])),
             'design_body_font' => sanitize_text_field((string) ($input['design_body_font'] ?? $current['design_body_font'])),
             'design_radius' => $this->sanitizeCssSize($input['design_radius'] ?? $current['design_radius']),
@@ -115,6 +125,16 @@ final class SettingsPage
             $settings['design_surface_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_surface_color'] ?? $settings['design_surface_color']);
             $settings['design_text_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_text_color'] ?? $settings['design_text_color']);
             $settings['design_muted_text_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_muted_text_color'] ?? $settings['design_muted_text_color']);
+            $settings['design_chart_series_one_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_chart_series_one_color'] ?? $settings['design_chart_series_one_color']);
+            $settings['design_chart_series_two_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_chart_series_two_color'] ?? $settings['design_chart_series_two_color']);
+            $settings['design_chart_series_three_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_chart_series_three_color'] ?? $settings['design_chart_series_three_color']);
+            $settings['design_chart_series_four_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_chart_series_four_color'] ?? $settings['design_chart_series_four_color']);
+            $settings['design_chart_series_five_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_chart_series_five_color'] ?? $settings['design_chart_series_five_color']);
+            $settings['design_chart_grid_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_chart_grid_color'] ?? $settings['design_chart_grid_color']);
+            $settings['design_market_sales_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_market_sales_color'] ?? $settings['design_market_sales_color']);
+            $settings['design_market_comparison_sales_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_market_comparison_sales_color'] ?? $settings['design_market_comparison_sales_color']);
+            $settings['design_market_price_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_market_price_color'] ?? $settings['design_market_price_color']);
+            $settings['design_market_comparison_price_color'] = $this->sanitizeColor($_POST[Plugin::OPTION_NAME]['design_market_comparison_price_color'] ?? $settings['design_market_comparison_price_color']);
             $settings['design_heading_font'] = sanitize_text_field((string) ($_POST[Plugin::OPTION_NAME]['design_heading_font'] ?? $settings['design_heading_font']));
             $settings['design_body_font'] = sanitize_text_field((string) ($_POST[Plugin::OPTION_NAME]['design_body_font'] ?? $settings['design_body_font']));
             $settings['design_radius'] = $this->sanitizeCssSize($_POST[Plugin::OPTION_NAME]['design_radius'] ?? $settings['design_radius']);
@@ -275,6 +295,16 @@ final class SettingsPage
             <?php $this->renderColorField($settings, 'design_surface_color', 'Panel/card surface colour', 'Leave empty to inherit the theme content background colour.'); ?>
             <?php $this->renderColorField($settings, 'design_text_color', 'Main text colour', 'Leave empty to inherit the theme body text colour.'); ?>
             <?php $this->renderColorField($settings, 'design_muted_text_color', 'Muted text colour', 'Leave empty to inherit the theme muted text colour.'); ?>
+            <?php $this->renderColorField($settings, 'design_chart_series_one_color', 'Chart series 1 colour', 'Used for the first series in source, rating and distribution charts. Leave empty to use the plugin chart palette.'); ?>
+            <?php $this->renderColorField($settings, 'design_chart_series_two_color', 'Chart series 2 colour', 'Used for the second series in source, rating and distribution charts. Leave empty to use the plugin chart palette.'); ?>
+            <?php $this->renderColorField($settings, 'design_chart_series_three_color', 'Chart series 3 colour', 'Used for the third series in source, rating and distribution charts. Leave empty to use the plugin chart palette.'); ?>
+            <?php $this->renderColorField($settings, 'design_chart_series_four_color', 'Chart series 4 colour', 'Used for the fourth series in source, rating and distribution charts. Leave empty to use the plugin chart palette.'); ?>
+            <?php $this->renderColorField($settings, 'design_chart_series_five_color', 'Chart series 5 colour', 'Used for the fifth series in source, rating and distribution charts. Leave empty to use the plugin chart palette.'); ?>
+            <?php $this->renderColorField($settings, 'design_chart_grid_color', 'Chart grid line colour', 'Used for chart grid and axis guide lines. Leave empty to use the plugin chart palette.'); ?>
+            <?php $this->renderColorField($settings, 'design_market_sales_color', 'Market chart sales colour', 'Used for the selected period sales line in Market monthly comparison charts. Leave empty to use the plugin chart palette.'); ?>
+            <?php $this->renderColorField($settings, 'design_market_comparison_sales_color', 'Market chart comparison sales colour', 'Used for previous period or same period last year sales lines in Market charts. Leave empty to use the plugin chart palette.'); ?>
+            <?php $this->renderColorField($settings, 'design_market_price_color', 'Market chart median price colour', 'Used for current median price lines in Market monthly comparison charts. Leave empty to use the plugin chart palette.'); ?>
+            <?php $this->renderColorField($settings, 'design_market_comparison_price_color', 'Market chart comparison price colour', 'Used for previous period or same period last year median price lines in Market charts. Leave empty to use the plugin chart palette.'); ?>
             <tr>
                 <th scope="row"><label for="cpi_design_heading_font"><?php echo esc_html__('Heading font stack', 'cornish-property-intelligence'); ?></label></th>
                 <td>

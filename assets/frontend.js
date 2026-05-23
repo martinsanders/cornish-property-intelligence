@@ -92,6 +92,10 @@
         return JSON.parse(JSON.stringify(payload || {}));
     }
 
+    function isObject(value) {
+        return value !== null && typeof value === 'object' && !Array.isArray(value);
+    }
+
     function selectedControls(module) {
         const controls = {};
 
@@ -199,7 +203,13 @@
             };
         }
 
-        next = slicePayload(next, periodLimit(controls.period));
+        if (controls.compare_with === 'Previous period') {
+            next = previousPeriodComparisonPayload(next, periodLimit(controls.period));
+        } else {
+            next = slicePayload(next, periodLimit(controls.period));
+        }
+
+        next = normalizeMonthlyComparisonSeries(next, controls);
 
         if (controls.metric_view === 'Sales volume only' && Array.isArray(next.series)) {
             next = {
@@ -208,7 +218,148 @@
             };
         }
 
+        if (controls.compare_with === 'None' && Array.isArray(next.series)) {
+            next = {
+                ...next,
+                series: next.series.filter((series) => {
+                    const name = text(series.name).toLowerCase();
+
+                    return !name.includes('previous') && !name.includes('comparison');
+                }),
+            };
+        }
+
         return next;
+    }
+
+    function isComparisonSeries(series) {
+        const name = text(series?.name).toLowerCase();
+
+        return name.includes('previous') || name.includes('comparison') || name.includes('same period');
+    }
+
+    function normalizeMonthlyComparisonSeries(payload, controls) {
+        if (!Array.isArray(payload.series)) {
+            return payload;
+        }
+
+        const keepComparison = controls.compare_with && controls.compare_with !== 'None';
+        const series = payload.series
+            .filter((series) => keepComparison || !isComparisonSeries(series))
+            .map((series) => {
+                const name = text(series.name || 'Series');
+                const lower = name.toLowerCase();
+                const isPrice = lower.includes('price');
+                const values = Array.isArray(series.data) ? series.data : series.values;
+                const normalizedName = isPrice
+                    ? (isComparisonSeries(series) ? name : 'Median price')
+                    : (isComparisonSeries(series) ? name : 'Sales');
+                const normalizedValues = isPrice && Array.isArray(values)
+                    ? values.map((value) => {
+                        const parsed = number(value);
+                        return parsed === 0 ? null : value;
+                    })
+                    : values;
+
+                return {
+                    ...series,
+                    name: normalizedName,
+                    data: Array.isArray(series.data) ? normalizedValues : series.data,
+                    values: Array.isArray(series.data) ? series.values : normalizedValues,
+                };
+            });
+
+        if (
+            controls.compare_with === 'Same period last year'
+            && !series.some((series) => text(series.name).toLowerCase().includes('same period'))
+            && Array.isArray(payload.categories)
+            && payload.categories.length > 0
+        ) {
+            const comparisonSales = number(payload.same_month_last_year_count);
+            const comparisonPrice = number(payload.same_month_last_year_median_price);
+            const lastPoint = payload.categories.length - 1;
+            const pointSeries = [];
+
+            if (comparisonSales !== null) {
+                pointSeries.push({
+                    name: 'Same period last year',
+                    data: payload.categories.map((category, index) => (index === lastPoint ? comparisonSales : null)),
+                });
+            }
+
+            if (comparisonPrice !== null) {
+                pointSeries.push({
+                    name: 'Same period last year median price',
+                    data: payload.categories.map((category, index) => (index === lastPoint ? comparisonPrice : null)),
+                });
+            }
+
+            series.push(...pointSeries);
+        }
+
+        return {
+            ...payload,
+            series,
+        };
+    }
+
+    function previousPeriodComparisonPayload(payload, limit) {
+        const sliced = slicePayload(payload, limit);
+        const monthKeys = Array.isArray(payload.month_keys) ? payload.month_keys : [];
+        const currentKeys = Array.isArray(sliced.month_keys) ? sliced.month_keys : [];
+        const currentSeries = Array.isArray(sliced.series)
+            ? sliced.series.filter((series) => !isComparisonSeries(series))
+            : [];
+
+        if (!monthKeys.length || !currentKeys.length || !currentSeries.length) {
+            return {
+                ...sliced,
+                series: currentSeries,
+            };
+        }
+
+        const currentStart = Math.max(0, monthKeys.length - currentKeys.length);
+        const previousStart = Math.max(0, currentStart - currentKeys.length);
+        const previousKeys = monthKeys.slice(previousStart, currentStart);
+
+        if (!previousKeys.length) {
+            return {
+                ...sliced,
+                series: currentSeries,
+            };
+        }
+
+        const valueByMonth = isObject(payload.primary_by_month)
+            ? payload.primary_by_month
+            : monthKeys.reduce((values, key, index) => {
+                const sourceValues = Array.isArray(payload.series?.[0]?.data)
+                    ? payload.series[0].data
+                    : payload.series?.[0]?.values;
+
+                if (Array.isArray(sourceValues)) {
+                    values[key] = sourceValues[index];
+                }
+
+                return values;
+            }, {});
+        const offset = currentKeys.length - previousKeys.length;
+        const previousValues = currentKeys.map((key, index) => {
+            const previousKey = previousKeys[index - offset];
+            const value = previousKey ? number(valueByMonth[previousKey]) : null;
+
+            return value === null ? null : value;
+        });
+
+        return {
+            ...sliced,
+            series: [
+                ...currentSeries,
+                {
+                    name: 'Previous period sales',
+                    data: previousValues,
+                },
+            ],
+        };
     }
 
     function filterSourceComparison(payload, controls) {
@@ -396,14 +547,13 @@
     }
 
     function chartPalette() {
-        const source = document.querySelector('.cpi-virtual-page, .cpi-location-modules, .cpi-postcode-area-modules') || document.documentElement;
-        const styles = getComputedStyle(source);
-        const primary = styles.getPropertyValue('--cpi-color-primary').trim() || '#245a70';
-        const accent = styles.getPropertyValue('--cpi-color-accent').trim() || '#9ec7bd';
-        const warning = styles.getPropertyValue('--cpi-color-warning').trim() || '#c7973e';
-        const muted = styles.getPropertyValue('--cpi-color-muted').trim() || '#64748b';
-
-        return [primary, accent, warning, muted, '#d6674f'];
+        return [
+            themeValue('--cpi-chart-series-one-color', '#245a70'),
+            themeValue('--cpi-chart-series-two-color', '#1f3f6d'),
+            themeValue('--cpi-chart-series-three-color', '#9ec7bd'),
+            themeValue('--cpi-chart-series-four-color', '#c7973e'),
+            themeValue('--cpi-chart-series-five-color', '#d6674f'),
+        ];
     }
 
     function themeValue(variable, fallback) {
@@ -456,6 +606,10 @@
 
         if ((type === 'source-comparison' || type === 'monthly-comparison') && controls.period) {
             parts.push(controls.period);
+        }
+
+        if (type === 'monthly-comparison' && controls.compare_with) {
+            parts.push(controls.compare_with);
         }
 
         if (type === 'source-comparison' && controls.source_focus) {
@@ -716,18 +870,54 @@
             && payload.series.some((series) => text(series.name).toLowerCase().includes('price'));
         const ink = themeValue('--cpi-color-ink', '#061126');
         const grid = themeValue('--cpi-chart-grid-color', 'rgba(100,116,139,0.18)');
-        const axis = themeValue('--cpi-color-border', 'rgba(100,116,139,0.3)');
+        const axis = themeValue('--cpi-chart-grid-color', '#d7dee2');
+        const monthlyColors = {
+            selectedSales: themeValue('--cpi-chart-market-sales-color', '#3f6675'),
+            comparisonSales: themeValue('--cpi-chart-market-comparison-sales-color', '#b9c6cc'),
+            currentPrice: themeValue('--cpi-chart-market-price-color', '#cc735d'),
+            comparisonPrice: themeValue('--cpi-chart-market-comparison-price-color', '#ecd1c8'),
+        };
+        const monthlyColor = (name) => {
+            const lower = name.toLowerCase();
+
+            if (lower.includes('price') && (lower.includes('previous') || lower.includes('same period') || lower.includes('comparison'))) {
+                return monthlyColors.comparisonPrice;
+            }
+
+            if (lower.includes('price')) {
+                return monthlyColors.currentPrice;
+            }
+
+            if (lower.includes('previous') || lower.includes('same period') || lower.includes('comparison')) {
+                return monthlyColors.comparisonSales;
+            }
+
+            return monthlyColors.selectedSales;
+        };
 
         return {
             ...baseEchartOption(),
+            color: chartType === 'monthly-comparison'
+                ? payload.series.map((series) => monthlyColor(text(series.name || 'Series')))
+                : chartPalette(),
             legend: {
                 top: 0,
-                right: 0,
-                itemGap: 14,
-                itemHeight: 10,
-                itemWidth: 20,
-                textStyle: { color: ink, fontSize: 12, fontWeight: 700 },
+                left: 'center',
+                width: '88%',
+                itemGap: chartType === 'monthly-comparison' ? 12 : 14,
+                itemHeight: chartType === 'monthly-comparison' ? 9 : 10,
+                itemWidth: chartType === 'monthly-comparison' ? 18 : 20,
+                textStyle: { color: ink, fontSize: chartType === 'monthly-comparison' ? 11 : 12, fontWeight: 700 },
             },
+            grid: chartType === 'monthly-comparison'
+                ? {
+                    left: 14,
+                    right: 52,
+                    top: 58,
+                    bottom: 8,
+                    containLabel: true,
+                }
+                : baseEchartOption().grid,
             xAxis: {
                 type: 'category',
                 data: payload.categories,
@@ -743,14 +933,14 @@
             yAxis: usesMedianAxis ? [
                 {
                     type: 'value',
-                    name: 'Count',
+                    name: chartType === 'monthly-comparison' ? 'Sales' : 'Count',
                     axisLine: { show: false },
                     axisTick: { show: false },
                     splitLine: { lineStyle: { color: grid } },
                 },
                 {
                     type: 'value',
-                    name: 'Price',
+                    name: chartType === 'monthly-comparison' ? 'Median price' : 'Price',
                     axisLine: { show: false },
                     axisTick: { show: false },
                     splitLine: { show: false },
@@ -762,10 +952,12 @@
                 axisTick: { show: false },
                 splitLine: { lineStyle: { color: grid } },
             },
-            series: payload.series.map((series) => {
+            series: payload.series.map((series, index) => {
                 const name = text(series.name || 'Series');
                 const isPrice = name.toLowerCase().includes('price');
+                const isComparison = name.toLowerCase().includes('previous') || name.toLowerCase().includes('same period') || name.toLowerCase().includes('comparison');
                 const type = isRating ? 'bar' : (chartType === 'monthly-comparison' ? 'line' : (series.type === 'bar' ? 'bar' : 'line'));
+                const color = chartType === 'monthly-comparison' ? monthlyColor(name) : undefined;
 
                 return {
                     name,
@@ -775,9 +967,9 @@
                     smooth: type === 'line',
                     symbolSize: type === 'line' ? 8 : undefined,
                     barMaxWidth: type === 'bar' ? 28 : undefined,
-                    itemStyle: type === 'bar' ? { borderRadius: [8, 8, 0, 0] } : undefined,
-                    lineStyle: type === 'line' ? { width: 3 } : undefined,
-                    areaStyle: chartType === 'monthly-comparison' && type === 'line' && !isPrice ? { opacity: 0.14 } : undefined,
+                    itemStyle: type === 'bar' ? { borderRadius: [8, 8, 0, 0] } : (color ? { color } : undefined),
+                    lineStyle: type === 'line' ? { width: 3, color, type: isComparison ? 'dashed' : 'solid' } : undefined,
+                    areaStyle: chartType === 'monthly-comparison' && type === 'line' && !isPrice && index === 0 ? { color, opacity: 0.12 } : undefined,
                     connectNulls: false,
                 };
             }),

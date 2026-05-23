@@ -386,6 +386,7 @@ final class ModuleRenderer
     {
         return in_array($key, [
             'period',
+            'compare_with',
             'property_type',
             'metric_view',
             'source_focus',

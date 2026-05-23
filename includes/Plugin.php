@@ -52,7 +52,7 @@ final class Plugin
             'cornish-property-intelligence',
             CPI_PLUGIN_URL.'assets/frontend.css',
             [],
-            '0.1.0'
+            self::assetVersion('assets/frontend.css')
         );
         wp_add_inline_style('cornish-property-intelligence', self::designCss());
 
@@ -68,7 +68,7 @@ final class Plugin
             'cornish-property-intelligence',
             CPI_PLUGIN_URL.'assets/frontend.js',
             ['echarts'],
-            '0.1.0',
+            self::assetVersion('assets/frontend.js'),
             true
         );
     }
@@ -101,6 +101,16 @@ final class Plugin
             'design_surface_color' => (string) ($settings['design_surface_color'] ?? ''),
             'design_text_color' => (string) ($settings['design_text_color'] ?? ''),
             'design_muted_text_color' => (string) ($settings['design_muted_text_color'] ?? ''),
+            'design_chart_series_one_color' => (string) ($settings['design_chart_series_one_color'] ?? ''),
+            'design_chart_series_two_color' => (string) ($settings['design_chart_series_two_color'] ?? ''),
+            'design_chart_series_three_color' => (string) ($settings['design_chart_series_three_color'] ?? ''),
+            'design_chart_series_four_color' => (string) ($settings['design_chart_series_four_color'] ?? ''),
+            'design_chart_series_five_color' => (string) ($settings['design_chart_series_five_color'] ?? ''),
+            'design_chart_grid_color' => (string) ($settings['design_chart_grid_color'] ?? ''),
+            'design_market_sales_color' => (string) ($settings['design_market_sales_color'] ?? ''),
+            'design_market_comparison_sales_color' => (string) ($settings['design_market_comparison_sales_color'] ?? ''),
+            'design_market_price_color' => (string) ($settings['design_market_price_color'] ?? ''),
+            'design_market_comparison_price_color' => (string) ($settings['design_market_comparison_price_color'] ?? ''),
             'design_heading_font' => (string) ($settings['design_heading_font'] ?? ''),
             'design_body_font' => (string) ($settings['design_body_font'] ?? ''),
             'design_radius' => (string) ($settings['design_radius'] ?? ''),
@@ -125,6 +135,16 @@ final class Plugin
             'design_surface_color' => $settings['design_surface_color'] ?? '',
             'design_text_color' => $settings['design_text_color'] ?? '',
             'design_muted_text_color' => $settings['design_muted_text_color'] ?? '',
+            'design_chart_series_one_color' => $settings['design_chart_series_one_color'] ?? '',
+            'design_chart_series_two_color' => $settings['design_chart_series_two_color'] ?? '',
+            'design_chart_series_three_color' => $settings['design_chart_series_three_color'] ?? '',
+            'design_chart_series_four_color' => $settings['design_chart_series_four_color'] ?? '',
+            'design_chart_series_five_color' => $settings['design_chart_series_five_color'] ?? '',
+            'design_chart_grid_color' => $settings['design_chart_grid_color'] ?? '',
+            'design_market_sales_color' => $settings['design_market_sales_color'] ?? '',
+            'design_market_comparison_sales_color' => $settings['design_market_comparison_sales_color'] ?? '',
+            'design_market_price_color' => $settings['design_market_price_color'] ?? '',
+            'design_market_comparison_price_color' => $settings['design_market_comparison_price_color'] ?? '',
             'design_heading_font' => $settings['design_heading_font'] ?? '',
             'design_body_font' => $settings['design_body_font'] ?? '',
             'design_radius' => $settings['design_radius'] ?? '',
@@ -143,6 +163,16 @@ final class Plugin
             '--cpi-color-surface' => $settings['design_surface_color'],
             '--cpi-color-ink' => $settings['design_text_color'],
             '--cpi-color-muted' => $settings['design_muted_text_color'],
+            '--cpi-chart-series-one-color' => $settings['design_chart_series_one_color'],
+            '--cpi-chart-series-two-color' => $settings['design_chart_series_two_color'],
+            '--cpi-chart-series-three-color' => $settings['design_chart_series_three_color'],
+            '--cpi-chart-series-four-color' => $settings['design_chart_series_four_color'],
+            '--cpi-chart-series-five-color' => $settings['design_chart_series_five_color'],
+            '--cpi-chart-grid-color' => $settings['design_chart_grid_color'],
+            '--cpi-chart-market-sales-color' => $settings['design_market_sales_color'],
+            '--cpi-chart-market-comparison-sales-color' => $settings['design_market_comparison_sales_color'],
+            '--cpi-chart-market-price-color' => $settings['design_market_price_color'],
+            '--cpi-chart-market-comparison-price-color' => $settings['design_market_comparison_price_color'],
             '--cpi-heading-font' => $settings['design_heading_font'],
             '--cpi-body-font' => $settings['design_body_font'],
             '--cpi-radius' => $settings['design_radius'],
@@ -164,6 +194,13 @@ final class Plugin
         }
 
         return ':root {'."\n    ".implode("\n    ", $declarations)."\n".'}';
+    }
+
+    private static function assetVersion(string $path): string
+    {
+        $file = CPI_PLUGIN_DIR.$path;
+
+        return is_readable($file) ? (string) filemtime($file) : '0.1.0';
     }
 
     private static function safeCssValue(string $value): string
