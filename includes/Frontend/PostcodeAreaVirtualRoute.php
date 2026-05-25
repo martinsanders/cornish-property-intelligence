@@ -31,7 +31,7 @@ final class PostcodeAreaVirtualRoute
         add_action('template_redirect', [$this, 'render']);
         add_filter('document_title_parts', [$this, 'documentTitle']);
         add_filter('body_class', [$this, 'bodyClass']);
-        add_action('wp_head', [$this, 'robotsMeta']);
+        add_filter('wp_robots', [$this, 'robotsDirectives']);
         add_action('wp_head', [$this, 'canonicalTag']);
     }
 
@@ -131,21 +131,30 @@ final class PostcodeAreaVirtualRoute
         echo '<link rel="canonical" href="'.esc_url($canonical).'">'."\n";
     }
 
-    public function robotsMeta(): void
+    /**
+     * @param array<string, bool|string> $robots
+     * @return array<string, bool|string>
+     */
+    public function robotsDirectives(array $robots): array
     {
         $areaKey = $this->areaKey();
 
         if ($areaKey === null) {
-            return;
+            return $robots;
         }
 
         $seo = $this->seoMetadata($areaKey);
 
         if (($seo['indexing'] ?? '') !== 'noindex_follow') {
-            return;
+            return $robots;
         }
 
-        echo '<meta name="robots" content="noindex,follow">'."\n";
+        unset($robots['index'], $robots['nofollow']);
+
+        $robots['noindex'] = true;
+        $robots['follow'] = true;
+
+        return $robots;
     }
 
     private function routeMarkup(): string

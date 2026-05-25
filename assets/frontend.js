@@ -96,10 +96,14 @@
         return value !== null && typeof value === 'object' && !Array.isArray(value);
     }
 
-    function selectedControls(module) {
+    function selectedControls(module, includeInactive = false) {
         const controls = {};
 
         module.querySelectorAll('[data-cpi-control-group]').forEach((group) => {
+            if (!includeInactive && !controlGroupApplies(module, group)) {
+                return;
+            }
+
             const key = group.dataset.cpiControlGroup;
             const select = group.querySelector('[data-cpi-control-select]');
             const active = group.querySelector('[data-cpi-control-option][aria-pressed="true"]');
@@ -161,11 +165,20 @@
 
         const url = new URL(window.location.href);
 
+        if (module.dataset.cpiModuleKey === 'epc_status') {
+            url.searchParams.delete(moduleControlParam(module, 'epc_view'));
+        }
+
         module.querySelectorAll('[data-cpi-control-group]').forEach((group) => {
             const key = group.dataset.cpiControlGroup;
             const param = moduleControlParam(module, key);
 
             if (!param) {
+                return;
+            }
+
+            if (!controlGroupApplies(module, group)) {
+                url.searchParams.delete(param);
                 return;
             }
 
@@ -601,17 +614,6 @@
     function filterRatingComparison(payload, controls) {
         let next = payload;
 
-        if (controls.epc_view && controls.epc_view !== 'Current vs potential' && Array.isArray(next.series)) {
-            const needle = controls.epc_view === 'Current rating distribution'
-                ? 'Current EPC rating'
-                : 'Potential EPC rating';
-
-            next = {
-                ...next,
-                series: next.series.filter((series) => series.name === needle),
-            };
-        }
-
         return next;
     }
 
@@ -639,6 +641,264 @@
 
     function filterEpcTimelinePayload(payload, controls) {
         return slicePayload(payload, epcTimelineLimit(controls.epc_time_range));
+    }
+
+    function selectedTimeSlicePayloads(payload, controls) {
+        if (controls.epc_time_range === 'all_periods') {
+            return [];
+        }
+
+        const periods = Array.isArray(payload.time_slices?.periods) ? payload.time_slices.periods : [];
+        const limit = epcTimelineLimit(controls.epc_time_range);
+        const selected = limit ? periods.slice(-limit) : periods;
+
+        return selected
+            .map((period) => isObject(period?.payload) ? period.payload : null)
+            .filter(Boolean);
+    }
+
+    function timeSlicedSeriesPayload(payload, controls) {
+        const slices = selectedTimeSlicePayloads(payload, controls);
+
+        if (!slices.length) {
+            return payload;
+        }
+
+        const categories = [];
+        const seriesNames = [];
+
+        slices.forEach((slice) => {
+            seriesLabels(slice).forEach((category) => {
+                if (!categories.includes(category)) {
+                    categories.push(category);
+                }
+            });
+            (slice.series || []).forEach((series) => {
+                const name = text(series.name || 'Series');
+
+                if (name && !seriesNames.includes(name)) {
+                    seriesNames.push(name);
+                }
+            });
+        });
+
+        if (!categories.length || !seriesNames.length) {
+            return payload;
+        }
+
+        return {
+            ...payload,
+            categories,
+            labels: undefined,
+            series: seriesNames.map((name) => ({
+                name,
+                data: categories.map((category) => slices.reduce((total, slice) => {
+                    const categoryIndex = seriesLabels(slice).indexOf(category);
+                    const series = (slice.series || []).find((item) => text(item.name || 'Series') === name);
+                    const value = categoryIndex >= 0 && Array.isArray(series?.data) ? number(series.data[categoryIndex]) : null;
+
+                    return value === null ? total : total + value;
+                }, 0)),
+            })),
+        };
+    }
+
+    function timeSlicedOpportunityPayload(payload, controls) {
+        const slices = selectedTimeSlicePayloads(payload, controls);
+
+        if (!slices.length) {
+            return payload;
+        }
+
+        const categories = [];
+        const seriesNames = [];
+        const seriesUnits = {};
+
+        slices.forEach((slice) => {
+            seriesLabels(slice).forEach((category) => {
+                if (!categories.includes(category)) {
+                    categories.push(category);
+                }
+            });
+            (slice.series || []).forEach((series) => {
+                const name = text(series.name || 'Metric');
+
+                if (name && !seriesNames.includes(name)) {
+                    seriesNames.push(name);
+                }
+
+                if (name) {
+                    seriesUnits[name] = text(series.unit || seriesUnits[name] || '');
+                }
+            });
+        });
+
+        const recordCounts = categories.map((category) => slices.reduce((total, slice) => {
+            const index = seriesLabels(slice).indexOf(category);
+            const count = index >= 0 && Array.isArray(slice.record_counts) ? number(slice.record_counts[index]) : null;
+
+            return count === null ? total : total + count;
+        }, 0));
+
+        return {
+            ...payload,
+            categories,
+            record_counts: recordCounts,
+            series: seriesNames.map((name) => ({
+                name,
+                unit: seriesUnits[name],
+                data: categories.map((category) => {
+                    let weightedTotal = 0;
+                    let weightTotal = 0;
+
+                    slices.forEach((slice) => {
+                        const categoryIndex = seriesLabels(slice).indexOf(category);
+                        const series = (slice.series || []).find((item) => text(item.name || 'Metric') === name);
+                        const value = categoryIndex >= 0 && Array.isArray(series?.data) ? number(series.data[categoryIndex]) : null;
+                        const weight = categoryIndex >= 0 && Array.isArray(slice.record_counts) ? number(slice.record_counts[categoryIndex]) : null;
+
+                        if (value === null || weight === null || weight <= 0) {
+                            return;
+                        }
+
+                        weightedTotal += value * weight;
+                        weightTotal += weight;
+                    });
+
+                    return weightTotal > 0 ? Math.round((weightedTotal / weightTotal) * 10) / 10 : null;
+                }),
+            })),
+        };
+    }
+
+    function timeSlicedFuelPropertyMixPayload(payload, controls) {
+        const slices = selectedTimeSlicePayloads(payload, controls);
+
+        if (!slices.length) {
+            return payload;
+        }
+
+        const categoryTotals = {};
+        const fuelTotals = {};
+        const cellCounts = {};
+
+        slices.forEach((slice) => {
+            const categories = seriesLabels(slice);
+
+            categories.forEach((category, categoryIndex) => {
+                const recordCount = Array.isArray(slice.record_counts) ? number(slice.record_counts[categoryIndex]) : null;
+
+                categoryTotals[category] = (categoryTotals[category] || 0) + (recordCount || 0);
+            });
+
+            (slice.series || []).forEach((series) => {
+                const fuel = text(series.name || 'Fuel');
+
+                if (!fuel || !Array.isArray(series.data)) {
+                    return;
+                }
+
+                series.data.forEach((point, categoryIndex) => {
+                    const category = categories[categoryIndex];
+                    const count = pointCount(point);
+
+                    if (!category || count === null || count <= 0) {
+                        return;
+                    }
+
+                    cellCounts[category] ??= {};
+                    cellCounts[category][fuel] = (cellCounts[category][fuel] || 0) + count;
+                    fuelTotals[fuel] = (fuelTotals[fuel] || 0) + count;
+                });
+            });
+        });
+
+        const categories = Object.keys(categoryTotals).filter((category) => categoryTotals[category] > 0);
+        const fuels = Object.keys(fuelTotals).sort((a, b) => fuelTotals[b] - fuelTotals[a]);
+
+        return {
+            ...payload,
+            categories,
+            record_counts: categories.map((category) => categoryTotals[category]),
+            series: fuels.map((fuel) => ({
+                name: fuel,
+                type: 'bar',
+                stack: 'fuel',
+                unit: 'percent',
+                data: categories.map((category) => {
+                    const count = cellCounts[category]?.[fuel] || 0;
+                    const total = categoryTotals[category] || 0;
+
+                    return {
+                        value: total > 0 ? Math.round((count / total) * 1000) / 10 : 0,
+                        count,
+                    };
+                }),
+            })),
+        };
+    }
+
+    function seriesByMetric(payload, metric) {
+        return Array.isArray(payload.series)
+            ? payload.series.find((series) => text(series.metric) === metric)
+            : null;
+    }
+
+    function weightedSeriesAverage(payload, metric, weights) {
+        const series = seriesByMetric(payload, metric);
+        const values = Array.isArray(series?.data) ? series.data : series?.values;
+
+        if (!Array.isArray(values) || !Array.isArray(weights)) {
+            return null;
+        }
+
+        let weightedTotal = 0;
+        let weightTotal = 0;
+
+        values.forEach((value, index) => {
+            const parsed = number(value);
+            const weight = number(weights[index]);
+
+            if (parsed === null || weight === null || weight <= 0) {
+                return;
+            }
+
+            weightedTotal += parsed * weight;
+            weightTotal += weight;
+        });
+
+        return weightTotal > 0 ? Math.round((weightedTotal / weightTotal) * 10) / 10 : null;
+    }
+
+    function epcTimelineSummary(module, controls) {
+        const chart = module.querySelector('[data-cpi-interactive-chart="epc-time-series"]');
+        const payload = chart ? filterEpcTimelinePayload(readPayload(chart), controls) : {};
+        const recordSeries = seriesByMetric(payload, 'record_count');
+        const records = Array.isArray(recordSeries?.data) ? recordSeries.data : recordSeries?.values;
+        const recordCount = sumValues(records);
+
+        if (recordCount === null) {
+            return {};
+        }
+
+        return {
+            record_count: recordCount,
+            poor_rating_share: weightedSeriesAverage(payload, 'poor_rating_share', records),
+            retrofit_signal_share: weightedSeriesAverage(payload, 'retrofit_signal_share', records),
+            average_current_efficiency: weightedSeriesAverage(payload, 'average_current_efficiency', records),
+            average_potential_efficiency: weightedSeriesAverage(payload, 'average_potential_efficiency', records),
+            average_improvement_gap: weightedSeriesAverage(payload, 'average_improvement_gap', records),
+        };
+    }
+
+    function formatInsightMetricValue(value, format, suffix) {
+        if (value === null || value === undefined || value === '') {
+            return 'N/A';
+        }
+
+        const rendered = formatNumber(value);
+
+        return `${rendered}${suffix || ''}`;
     }
 
     function bucketsFromSeries(payload) {
@@ -785,7 +1045,7 @@
         }
 
         if (type === 'rating-comparison') {
-            return filterRatingComparison(payload, controls);
+            return filterRatingComparison(timeSlicedSeriesPayload(payload, controls), controls);
         }
 
         if (type === 'epc-time-series') {
@@ -794,6 +1054,14 @@
 
         if (type === 'distribution') {
             return filterDistribution(payload, controls);
+        }
+
+        if (type === 'epc-opportunity-bars') {
+            return timeSlicedOpportunityPayload(payload, controls);
+        }
+
+        if (type === 'epc-fuel-property-mix') {
+            return timeSlicedFuelPropertyMixPayload(payload, controls);
         }
 
         return payload;
@@ -882,10 +1150,6 @@
             }
         }
 
-        if (type === 'rating-comparison' && controls.epc_view) {
-            parts.push(controls.epc_view);
-        }
-
         if (type === 'rating-comparison' && controls.epc_insight_view) {
             parts.push('Current vs potential');
         }
@@ -897,6 +1161,14 @@
 
         if (
             (type === 'epc-time-series' || (type === 'source-comparison' && chart.dataset.cpiEpcInsights))
+            && controls.epc_time_range
+        ) {
+            parts.push(controls.epc_time_range === 'all_periods' ? 'All records' : text(controls.epc_time_range).replace(/_/g, ' '));
+        }
+
+        if (
+            ['rating-comparison', 'epc-opportunity-bars', 'epc-fuel-property-mix'].includes(type)
+            && payload.time_slices
             && controls.epc_time_range
         ) {
             parts.push(controls.epc_time_range === 'all_periods' ? 'All records' : text(controls.epc_time_range).replace(/_/g, ' '));
@@ -921,13 +1193,62 @@
         return controls.epc_insight_view || 'retrofit_opportunity';
     }
 
+    function activeEpcInsightFromModule(module) {
+        const group = module?.querySelector('[data-cpi-control-group="epc_insight_view"]');
+        const select = group?.querySelector('[data-cpi-control-select]');
+        const active = group?.querySelector('[data-cpi-control-option][aria-pressed="true"]');
+
+        return select?.value || active?.dataset.cpiControlOption || active?.textContent.trim() || 'retrofit_opportunity';
+    }
+
     function epcTimelineApplies(insight) {
         return [
+            'rating_profile',
             'retrofit_opportunity',
             'evidence_volume',
             'fuel_heating',
             'property_type_trend',
+            'property_type_opportunity',
+            'fuel_by_property_type',
         ].includes(insight);
+    }
+
+    function epcSelectedTimelineRange(controls = {}) {
+        return controls.epc_time_range || 'latest_3_years';
+    }
+
+    function epcRatingChartApplies(insight) {
+        return insight === 'rating_profile';
+    }
+
+    function epcEvidenceViewApplies() {
+        return false;
+    }
+
+    function epcControlApplies(key, insight, controls = {}) {
+        if (key === 'epc_insight_view') {
+            return true;
+        }
+
+        if (key === 'epc_view') {
+            return epcEvidenceViewApplies();
+        }
+
+        if (key === 'epc_time_range') {
+            return epcTimelineApplies(insight);
+        }
+
+        return true;
+    }
+
+    function controlGroupApplies(module, group) {
+        const key = group?.dataset?.cpiControlGroup || '';
+
+        if (!module || module.dataset.cpiModuleKey !== 'epc_status' || !key.startsWith('epc_')) {
+            return !group?.hidden;
+        }
+
+        return epcControlApplies(key, activeEpcInsightFromModule(module), selectedControls(module, true));
     }
 
     function chartSupportsInsight(chart, insight) {
@@ -939,28 +1260,72 @@
     function updateEpcInsightVisibility(module, controls) {
         const insight = activeEpcInsight(controls);
         const timelineActive = epcTimelineApplies(insight);
+        const selectedRange = epcSelectedTimelineRange(controls);
+        const timelineSummary = timelineActive ? epcTimelineSummary(module, controls) : {};
 
         module.querySelectorAll('[data-cpi-epc-insights]').forEach((chart) => {
-            chart.hidden = !chartSupportsInsight(chart, insight);
+            const requiresAllPeriods = chart.dataset.cpiEpcAllPeriodsOnly === 'true';
+            const rangeMismatch = requiresAllPeriods && selectedRange !== 'all_periods';
+
+            chart.hidden = !chartSupportsInsight(chart, insight) || rangeMismatch;
+        });
+
+        module.querySelectorAll('[data-cpi-interactive-chart="rating-comparison"]').forEach((chart) => {
+            chart.hidden = !epcRatingChartApplies(insight);
+        });
+
+        module.querySelectorAll('[data-cpi-epc-all-record-summary]').forEach((summary) => {
+            summary.hidden = true;
         });
 
         module.querySelectorAll('[data-cpi-epc-panel]').forEach((panel) => {
             panel.hidden = panel.dataset.cpiEpcPanel !== insight;
         });
 
-        module.querySelectorAll('[data-cpi-control-group="epc_time_range"]').forEach((group) => {
-            group.toggleAttribute('data-cpi-control-muted', !timelineActive);
-            group.querySelectorAll('button, select').forEach((control) => {
-                control.toggleAttribute('aria-disabled', !timelineActive);
-                control.disabled = !timelineActive;
+        module.querySelectorAll('[data-cpi-epc-conclusion]').forEach((panel) => {
+            panel.hidden = panel.dataset.cpiEpcConclusion !== insight;
+
+            panel.querySelectorAll('[data-cpi-epc-static-cards]').forEach((cards) => {
+                cards.hidden = timelineActive;
+            });
+
+            panel.querySelectorAll('[data-cpi-epc-insight-metric]').forEach((metric) => {
+                const key = metric.dataset.cpiEpcInsightMetric || '';
+                const value = timelineSummary[key];
+                const output = metric.querySelector('dd');
+
+                if (!output) {
+                    return;
+                }
+
+                if (!metric.dataset.cpiEpcDefaultValue) {
+                    metric.dataset.cpiEpcDefaultValue = output.textContent || '';
+                }
+
+                output.textContent = timelineActive
+                    ? formatInsightMetricValue(value, metric.dataset.cpiEpcInsightFormat || '', metric.dataset.cpiEpcInsightSuffix || '')
+                    : metric.dataset.cpiEpcDefaultValue;
             });
         });
 
-        module.querySelectorAll('[data-cpi-current-view-value="epc_time_range"]').forEach((target) => {
+        module.querySelectorAll('[data-cpi-control-group]').forEach((group) => {
+            const key = group.dataset.cpiControlGroup || '';
+            const active = !key.startsWith('epc_') || epcControlApplies(key, insight, controls);
+
+            group.hidden = !active;
+            group.toggleAttribute('data-cpi-control-muted', !active);
+            group.querySelectorAll('button, select').forEach((control) => {
+                control.toggleAttribute('aria-disabled', !active);
+                control.disabled = !active;
+            });
+        });
+
+        module.querySelectorAll('[data-cpi-current-view-value]').forEach((target) => {
             const item = target.closest('[data-cpi-current-view-item]');
+            const key = target.dataset.cpiCurrentViewValue || '';
 
             if (item) {
-                item.hidden = !timelineActive;
+                item.hidden = key.startsWith('epc_') && !epcControlApplies(key, insight, controls);
             }
         });
     }
@@ -1013,8 +1378,9 @@
     }
 
     function updateModule(module) {
-        const controls = selectedControls(module);
+        updateEpcInsightVisibility(module, selectedControls(module));
 
+        const controls = selectedControls(module);
         updateSummary(module, controls);
         updateTradeSupportingEvidence(module, controls);
         updateEpcInsightVisibility(module, controls);
@@ -1880,11 +2246,6 @@
     }
 
     function init(root) {
-        root.querySelectorAll('[data-cpi-module-root]').forEach((module) => {
-            applyUrlControls(module);
-            updateModule(module);
-        });
-
         root.addEventListener('click', (event) => {
             const selectOption = event.target.closest('[data-cpi-select-option]');
 
@@ -1937,6 +2298,17 @@
 
         root.querySelectorAll('[data-cpi-control-select]').forEach(syncSelectWrapper);
         window.addEventListener('resize', () => resizeCharts(root));
+
+        root.querySelectorAll('[data-cpi-module-root]').forEach((module) => {
+            try {
+                applyUrlControls(module);
+                updateModule(module);
+                updateUrlForModule(module);
+            } catch (error) {
+                module.dataset.cpiEnhancementError = 'true';
+                module.dataset.cpiEnhancementErrorMessage = error?.message || 'Enhancement failed';
+            }
+        });
     }
 
     if (document.readyState === 'loading') {

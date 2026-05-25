@@ -60,9 +60,9 @@ final class Plugin
 
         wp_enqueue_script(
             'echarts',
-            'https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js',
+            CPI_PLUGIN_URL.'assets/vendor/echarts.min.js',
             [],
-            '5.5.1',
+            self::assetVersion('assets/vendor/echarts.min.js'),
             true
         );
 
