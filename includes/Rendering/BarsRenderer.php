@@ -38,7 +38,7 @@ final class BarsRenderer
                 <?php $width = $value > 0 ? max(4, min(100, (int) round(($value / $max) * 100))) : 0; ?>
                 <div class="<?php echo esc_attr($classPrefix); ?>-bar" role="listitem">
                     <div class="<?php echo esc_attr($classPrefix); ?>-bar__label-row">
-                        <span><?php echo esc_html($this->label($label)); ?></span>
+                        <span><?php echo esc_html($this->label((string) $label)); ?></span>
                         <span><?php echo esc_html($this->formatNumber($value)); ?></span>
                     </div>
                     <div class="<?php echo esc_attr($classPrefix); ?>-bar__track" aria-hidden="true">

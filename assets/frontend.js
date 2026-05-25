@@ -114,6 +114,115 @@
         return controls;
     }
 
+    function moduleControlParam(module, key) {
+        const moduleKey = text(module?.dataset?.cpiModuleKey || 'module')
+            .toLowerCase()
+            .replace(/[^a-z0-9_]+/g, '_')
+            .replace(/^_+|_+$/g, '');
+        const controlKey = text(key)
+            .toLowerCase()
+            .replace(/[^a-z0-9_]+/g, '_')
+            .replace(/^_+|_+$/g, '');
+
+        if (!moduleKey || !controlKey) {
+            return '';
+        }
+
+        return `cpi_${moduleKey}_${controlKey}`;
+    }
+
+    function defaultSelectValue(select) {
+        const defaultOption = Array.from(select.options).find((option) => option.defaultSelected);
+
+        return defaultOption?.value || select.options[0]?.value || '';
+    }
+
+    function defaultButtonValue(group) {
+        const active = group.querySelector('[data-cpi-control-option][aria-pressed="true"]');
+        const first = group.querySelector('[data-cpi-control-option]');
+
+        return active?.dataset.cpiControlOption || active?.textContent.trim() || first?.dataset.cpiControlOption || first?.textContent.trim() || '';
+    }
+
+    function defaultControlValue(group) {
+        const select = group.querySelector('[data-cpi-control-select]');
+
+        if (select) {
+            return defaultSelectValue(select);
+        }
+
+        return defaultButtonValue(group);
+    }
+
+    function updateUrlForModule(module) {
+        if (!window.history?.replaceState) {
+            return;
+        }
+
+        const url = new URL(window.location.href);
+
+        module.querySelectorAll('[data-cpi-control-group]').forEach((group) => {
+            const key = group.dataset.cpiControlGroup;
+            const param = moduleControlParam(module, key);
+
+            if (!param) {
+                return;
+            }
+
+            const select = group.querySelector('[data-cpi-control-select]');
+            const active = group.querySelector('[data-cpi-control-option][aria-pressed="true"]');
+            const value = select
+                ? select.value
+                : (active?.dataset.cpiControlOption || active?.textContent.trim() || '');
+            const defaultValue = defaultControlValue(group);
+
+            if (value && value !== defaultValue) {
+                url.searchParams.set(param, value);
+            } else {
+                url.searchParams.delete(param);
+            }
+        });
+
+        const next = `${url.pathname}${url.search}${url.hash}`;
+        const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+        if (next !== current) {
+            window.history.replaceState({}, '', next);
+        }
+    }
+
+    function applyUrlControls(module) {
+        const params = new URLSearchParams(window.location.search);
+
+        module.querySelectorAll('[data-cpi-control-group]').forEach((group) => {
+            const key = group.dataset.cpiControlGroup;
+            const param = moduleControlParam(module, key);
+            const value = param ? params.get(param) : null;
+
+            if (!value) {
+                return;
+            }
+
+            const select = group.querySelector('[data-cpi-control-select]');
+
+            if (select && Array.from(select.options).some((option) => option.value === value)) {
+                select.value = value;
+                syncSelectWrapper(select);
+                return;
+            }
+
+            const button = Array.from(group.querySelectorAll('[data-cpi-control-option]')).find((option) => {
+                return option.dataset.cpiControlOption === value || option.textContent.trim() === value;
+            });
+
+            if (button) {
+                group.querySelectorAll('[data-cpi-control-option]').forEach((option) => {
+                    option.setAttribute('aria-pressed', option === button ? 'true' : 'false');
+                });
+            }
+        });
+    }
+
     function selectedControlLabels(module) {
         const labels = [];
 
@@ -161,16 +270,41 @@
         return null;
     }
 
+    function epcTimelineLimit(value) {
+        const normalised = text(value).toLowerCase();
+
+        if (normalised.includes('all')) {
+            return null;
+        }
+
+        if (normalised.includes('period') || normalised.includes('year') && !normalised.includes('3') && !normalised.includes('5') && !normalised.includes('10')) {
+            return 1;
+        }
+
+        if (normalised.includes('3')) {
+            return 3;
+        }
+
+        if (normalised.includes('10')) {
+            return 10;
+        }
+
+        return 5;
+    }
+
     function slicePayload(payload, limit) {
-        if (!limit || !Array.isArray(payload.categories)) {
+        const labels = seriesLabels(payload);
+
+        if (!limit || labels.length === 0) {
             return payload;
         }
 
-        const start = Math.max(payload.categories.length - limit, 0);
+        const start = Math.max(labels.length - limit, 0);
 
         return {
             ...payload,
-            categories: payload.categories.slice(start),
+            categories: Array.isArray(payload.categories) ? payload.categories.slice(start) : payload.categories,
+            labels: Array.isArray(payload.labels) ? payload.labels.slice(start) : payload.labels,
             month_keys: Array.isArray(payload.month_keys) ? payload.month_keys.slice(start) : payload.month_keys,
             series: Array.isArray(payload.series)
                 ? payload.series.map((series) => ({
@@ -180,6 +314,18 @@
                 }))
                 : payload.series,
         };
+    }
+
+    function seriesLabels(payload) {
+        if (Array.isArray(payload.categories)) {
+            return payload.categories;
+        }
+
+        if (Array.isArray(payload.labels)) {
+            return payload.labels;
+        }
+
+        return [];
     }
 
     function filterSourceSeries(payload, sourceFocus) {
@@ -469,12 +615,39 @@
         return next;
     }
 
+    function filterEpcTimeSeries(payload, chart) {
+        if (!Array.isArray(payload.series)) {
+            return payload;
+        }
+
+        const selectedMetric = text(chart.dataset.cpiEpcDefaultMetric || 'record_count');
+        const selectedSeries = payload.series.find((series) => text(series.metric) === selectedMetric)
+            || payload.series.find((series) => text(series.metric) === 'record_count')
+            || payload.series[0];
+
+        return {
+            ...payload,
+            series: selectedSeries
+                ? [{
+                    ...selectedSeries,
+                    type: text(selectedSeries.metric) === 'record_count' ? 'bar' : 'line',
+                    unit: text(selectedSeries.unit) || (text(selectedSeries.metric).includes('efficiency') || text(selectedSeries.metric).includes('gap') ? 'points' : ''),
+                }]
+                : [],
+        };
+    }
+
+    function filterEpcTimelinePayload(payload, controls) {
+        return slicePayload(payload, epcTimelineLimit(controls.epc_time_range));
+    }
+
     function bucketsFromSeries(payload) {
-        const labels = Array.isArray(payload.categories) ? payload.categories : [];
+        const labels = seriesLabels(payload);
         const series = Array.isArray(payload.series) ? payload.series : [];
 
         return series.map((item) => ({
             name: item.name || 'Series',
+            unit: text(item.unit),
             buckets: labels.reduce((buckets, label, index) => {
                 const values = Array.isArray(item.data) ? item.data : item.values;
                 const value = Array.isArray(values) ? number(values[index]) : null;
@@ -504,7 +677,21 @@
         return [{ name: payload.seriesName || 'Series', buckets }].filter((item) => Object.keys(item.buckets).length > 0);
     }
 
-    function renderBars(buckets, prefix) {
+    function formatBucketValue(value, unit) {
+        const formatted = formatNumber(value);
+
+        if (unit === 'percent') {
+            return `${formatted}%`;
+        }
+
+        if (unit === 'points') {
+            return `${formatted} pts`;
+        }
+
+        return formatted;
+    }
+
+    function renderBars(buckets, prefix, unit) {
         const values = Object.values(buckets).map(number).filter((value) => value !== null);
         const max = values.length ? Math.max(...values) : 0;
 
@@ -518,7 +705,7 @@
                 const width = parsed > 0 ? Math.max(4, Math.min(100, Math.round((parsed / max) * 100))) : 0;
 
                 return `<div class="${prefix}-bar" role="listitem">
-                    <div class="${prefix}-bar__label-row"><span>${escapeHtml(label)}</span><span>${formatNumber(parsed)}</span></div>
+                    <div class="${prefix}-bar__label-row"><span>${escapeHtml(label)}</span><span>${formatBucketValue(parsed, unit)}</span></div>
                     <div class="${prefix}-bar__track" aria-hidden="true"><span class="${prefix}-bar__fill" style="width: ${width}%;"></span></div>
                 </div>`;
             }).join('')
@@ -532,8 +719,18 @@
 
         return series.map((item) => `<div class="${prefix}-chart__series">
             <p class="${prefix}-chart__series-name">${escapeHtml(item.name)}</p>
-            ${renderBars(item.buckets, prefix)}
+            ${renderBars(item.buckets, prefix, item.unit)}
         </div>`).join('');
+    }
+
+    function renderEpcTrend(series, prefix) {
+        const rendered = renderSeries(series, prefix);
+
+        if (!rendered) {
+            return '';
+        }
+
+        return `${rendered}<p class="${prefix}-chart__description">EPC trend views use certificate assessment records by period, not unique property counts.</p>`;
     }
 
     function renderEmptyState(message, prefix) {
@@ -556,6 +753,16 @@
         ];
     }
 
+    function shortChartLabel(value, limit = 30) {
+        const label = text(value);
+
+        if (label.length <= limit) {
+            return label;
+        }
+
+        return `${label.slice(0, Math.max(0, limit - 1)).trim()}…`;
+    }
+
     function themeValue(variable, fallback) {
         const source = document.querySelector('.cpi-virtual-page, .cpi-location-modules, .cpi-postcode-area-modules') || document.documentElement;
         const value = getComputedStyle(source).getPropertyValue(variable).trim();
@@ -572,11 +779,17 @@
         }
 
         if (type === 'source-comparison') {
-            return filterSourceComparison(payload, controls);
+            const next = filterSourceComparison(payload, controls);
+
+            return chart.dataset.cpiEpcInsights ? filterEpcTimelinePayload(next, controls) : next;
         }
 
         if (type === 'rating-comparison') {
             return filterRatingComparison(payload, controls);
+        }
+
+        if (type === 'epc-time-series') {
+            return filterEpcTimelinePayload(filterEpcTimeSeries(payload, chart), controls);
         }
 
         if (type === 'distribution') {
@@ -587,9 +800,15 @@
     }
 
     function updateSummary(module, controls) {
+        if (module.querySelector('[data-cpi-current-view-value]')) {
+            updateCurrentViewContext(module);
+            return;
+        }
+
         const summary = module.querySelector('[class$="-data-studio__summary"]');
 
         if (!summary) {
+            updateCurrentViewContext(module);
             return;
         }
 
@@ -598,6 +817,28 @@
         if (selected.length) {
             summary.textContent = `Current view: ${selected.join(' · ')}`;
         }
+
+        updateCurrentViewContext(module);
+    }
+
+    function updateCurrentViewContext(module) {
+        module.querySelectorAll('[data-cpi-current-view-value]').forEach((target) => {
+            const key = target.dataset.cpiCurrentViewValue;
+            const group = key ? module.querySelector(`[data-cpi-control-group="${key}"]`) : null;
+            const select = group?.querySelector('[data-cpi-control-select]');
+            const active = group?.querySelector('[data-cpi-control-option][aria-pressed="true"]');
+            const item = target.closest('[data-cpi-current-view-item]');
+            const itemLabel = item?.querySelector('span')?.textContent?.trim() || '';
+            const label = select?.options?.[select.selectedIndex]?.textContent?.trim() || active?.textContent?.trim() || '';
+
+            if (label) {
+                target.textContent = label;
+
+                if (item && itemLabel) {
+                    item.setAttribute('aria-label', `${itemLabel}: ${label}`);
+                }
+            }
+        });
     }
 
     function chartStatusText(chart, payload, controls) {
@@ -645,6 +886,22 @@
             parts.push(controls.epc_view);
         }
 
+        if (type === 'rating-comparison' && controls.epc_insight_view) {
+            parts.push('Current vs potential');
+        }
+
+        if (type === 'epc-time-series') {
+            const selectedSeries = Array.isArray(payload.series) ? payload.series[0] : null;
+            parts.push(text(selectedSeries?.name || 'EPC certificate records over time'));
+        }
+
+        if (
+            (type === 'epc-time-series' || (type === 'source-comparison' && chart.dataset.cpiEpcInsights))
+            && controls.epc_time_range
+        ) {
+            parts.push(controls.epc_time_range === 'all_periods' ? 'All records' : text(controls.epc_time_range).replace(/_/g, ' '));
+        }
+
         return parts.length ? `Chart view: ${parts.join(' · ')}` : '';
     }
 
@@ -658,6 +915,54 @@
         const label = chartStatusText(chart, payload, controls);
         status.textContent = label;
         status.hidden = label === '';
+    }
+
+    function activeEpcInsight(controls) {
+        return controls.epc_insight_view || 'retrofit_opportunity';
+    }
+
+    function epcTimelineApplies(insight) {
+        return [
+            'retrofit_opportunity',
+            'evidence_volume',
+            'fuel_heating',
+            'property_type_trend',
+        ].includes(insight);
+    }
+
+    function chartSupportsInsight(chart, insight) {
+        const insights = text(chart.dataset.cpiEpcInsights).split(/\s+/).filter(Boolean);
+
+        return !insights.length || insights.includes(insight);
+    }
+
+    function updateEpcInsightVisibility(module, controls) {
+        const insight = activeEpcInsight(controls);
+        const timelineActive = epcTimelineApplies(insight);
+
+        module.querySelectorAll('[data-cpi-epc-insights]').forEach((chart) => {
+            chart.hidden = !chartSupportsInsight(chart, insight);
+        });
+
+        module.querySelectorAll('[data-cpi-epc-panel]').forEach((panel) => {
+            panel.hidden = panel.dataset.cpiEpcPanel !== insight;
+        });
+
+        module.querySelectorAll('[data-cpi-control-group="epc_time_range"]').forEach((group) => {
+            group.toggleAttribute('data-cpi-control-muted', !timelineActive);
+            group.querySelectorAll('button, select').forEach((control) => {
+                control.toggleAttribute('aria-disabled', !timelineActive);
+                control.disabled = !timelineActive;
+            });
+        });
+
+        module.querySelectorAll('[data-cpi-current-view-value="epc_time_range"]').forEach((target) => {
+            const item = target.closest('[data-cpi-current-view-item]');
+
+            if (item) {
+                item.hidden = !timelineActive;
+            }
+        });
     }
 
     function chartByType(module, type) {
@@ -712,15 +1017,25 @@
 
         updateSummary(module, controls);
         updateTradeSupportingEvidence(module, controls);
+        updateEpcInsightVisibility(module, controls);
 
         module.querySelectorAll('[data-cpi-interactive-chart]').forEach((chart) => {
+            if (chart.hidden) {
+                return;
+            }
+
             const output = chart.querySelector('[data-cpi-chart-output]');
+            const chartType = chart.dataset.cpiInteractiveChart;
             const payload = filteredPayload(chart, controls);
             const prefix = prefixFor(chart);
-            const series = chart.dataset.cpiInteractiveChart === 'distribution'
+            const series = chartType === 'distribution'
                 ? bucketsFromItems(payload)
                 : bucketsFromSeries(payload);
-            const html = renderSeries(series, prefix);
+            const html = chartType === 'epc-fuel-property-mix'
+                ? (output?.innerHTML || '')
+                : (chartType === 'epc-time-series'
+                ? renderEpcTrend(series, prefix)
+                : renderSeries(series, prefix));
 
             updateChartStatus(chart, payload, controls);
 
@@ -733,8 +1048,7 @@
     }
 
     function validSeriesPayload(payload) {
-        return Array.isArray(payload.categories)
-            && payload.categories.length > 0
+        return seriesLabels(payload).length > 0
             && Array.isArray(payload.series)
             && payload.series.length > 0;
     }
@@ -742,6 +1056,22 @@
     function validDistributionPayload(payload) {
         return Array.isArray(payload.items)
             && payload.items.some((item) => item && number(item.value) !== null && text(item.label || item.name || item.code) !== '');
+    }
+
+    function validFuelPropertyMixPayload(payload) {
+        return seriesLabels(payload).length > 0
+            && Array.isArray(payload.series)
+            && payload.series.some((series) => Array.isArray(series?.data) && series.data.some((point) => {
+                const value = isObject(point) ? point.value : point;
+
+                return number(value) !== null && number(value) > 0;
+            }));
+    }
+
+    function validOpportunityBarsPayload(payload) {
+        return seriesLabels(payload).length > 0
+            && Array.isArray(payload.series)
+            && payload.series.some((series) => Array.isArray(series?.data) && series.data.some((value) => number(value) !== null));
     }
 
     function numericSeriesData(series) {
@@ -753,6 +1083,16 @@
                 return parsed === null ? null : parsed;
             })
             : [];
+    }
+
+    function numericPointValue(point) {
+        const value = isObject(point) ? point.value : point;
+
+        return number(value);
+    }
+
+    function pointCount(point) {
+        return isObject(point) && number(point.count) !== null ? number(point.count) : null;
     }
 
     function baseEchartOption() {
@@ -840,7 +1180,13 @@
                 inverse: true,
                 axisLine: { show: false },
                 axisTick: { show: false },
-                axisLabel: { color: ink, fontWeight: 700 },
+                axisLabel: {
+                    color: ink,
+                    fontWeight: 700,
+                    formatter: (value) => shortChartLabel(value, 28),
+                    width: 120,
+                    overflow: 'truncate',
+                },
             },
             series: [{
                 name: payload.seriesName || 'Count',
@@ -859,15 +1205,291 @@
         };
     }
 
-    function seriesOption(payload, chartType) {
+    function fuelPropertyMixOption(payload) {
+        if (!validFuelPropertyMixPayload(payload)) {
+            return null;
+        }
+
+        const categories = seriesLabels(payload);
+        const ink = themeValue('--cpi-color-ink', '#061126');
+        const grid = themeValue('--cpi-chart-grid-color', 'rgba(100,116,139,0.18)');
+        const recordCounts = Array.isArray(payload.record_counts) ? payload.record_counts : [];
+        const fuelLabels = payload.series.map((series) => text(series.name || 'Fuel'));
+        const chartHeight = Math.max(320, categories.length * Math.max(58, payload.series.length * 18) + 118);
+
+        return {
+            ...baseEchartOption(),
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                confine: true,
+                backgroundColor: '#fff',
+                borderColor: themeValue('--cpi-color-border', 'rgba(100,116,139,0.22)'),
+                borderWidth: 1,
+                padding: [9, 11],
+                textStyle: {
+                    color: ink,
+                    fontSize: 12,
+                    fontWeight: 600,
+                },
+                extraCssText: 'box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12); border-radius: 6px; max-width: 285px; white-space: normal;',
+                formatter: (params) => {
+                    const items = Array.isArray(params) ? params : [params];
+                    const propertyType = text(items[0]?.axisValue || '');
+                    const propertyIndex = categories.indexOf(propertyType);
+                    const recordCount = number(recordCounts[propertyIndex]);
+                    const rows = items
+                        .filter((item) => number(item.value) !== null && number(item.value) > 0)
+                        .sort((a, b) => number(b.value) - number(a.value))
+                        .map((item) => {
+                            const count = pointCount(item.data);
+                            const countText = count === null ? '' : `<span style="color:#64748b;">${formatNumber(count)}</span>`;
+                            const marker = item.marker ? `<span style="display:inline-flex;align-items:center;">${item.marker}</span>` : '';
+
+                            return `<div style="display:grid;grid-template-columns:10px minmax(0,1fr) auto auto;align-items:center;gap:6px;">${marker}<span style="color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${text(item.seriesName)}</span><strong>${formatNumber(item.value)}%</strong>${countText}</div>`;
+                        });
+
+                    return [
+                        '<div style="font-size:12px;line-height:1.45;min-width:230px;">',
+                        `<div style="color:${ink};font-size:13px;font-weight:850;margin-bottom:2px;">${propertyType}</div>`,
+                        recordCount === null ? '' : `<div style="color:#64748b;font-size:11px;margin-bottom:6px;">${formatNumber(recordCount)} EPC certificate records</div>`,
+                        ...rows,
+                        '</div>',
+                    ].filter(Boolean).join('');
+                },
+            },
+            legend: {
+                type: fuelLabels.length > 4 ? 'scroll' : 'plain',
+                top: 0,
+                left: 'center',
+                right: 'auto',
+                itemGap: 10,
+                itemHeight: 9,
+                itemWidth: 16,
+                textStyle: { color: ink, fontSize: 11, fontWeight: 700 },
+                formatter: (name) => shortChartLabel(name, 28),
+            },
+            grid: {
+                left: 10,
+                right: 54,
+                top: 74,
+                bottom: 10,
+                containLabel: true,
+            },
+            xAxis: {
+                type: 'value',
+                max: 100,
+                axisLine: { show: false },
+                axisTick: { show: false },
+                splitLine: { lineStyle: { color: grid } },
+                axisLabel: { formatter: (value) => `${value}%` },
+            },
+            yAxis: {
+                type: 'category',
+                data: categories,
+                inverse: true,
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: {
+                    color: ink,
+                    fontWeight: 800,
+                    formatter: (value) => shortChartLabel(value, 18),
+                },
+            },
+            series: payload.series.map((series) => ({
+                name: text(series.name || 'Fuel'),
+                type: 'bar',
+                data: Array.isArray(series.data) ? series.data.map((point) => ({
+                    value: numericPointValue(point) || 0,
+                    count: pointCount(point),
+                })) : [],
+                barMaxWidth: 14,
+                itemStyle: {
+                    borderRadius: [0, 6, 6, 0],
+                },
+                label: {
+                    show: true,
+                    position: 'right',
+                    color: ink,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    formatter: ({ value }) => Number(value) >= 8 ? `${formatNumber(value)}%` : '',
+                },
+            })),
+            __cpiHeight: chartHeight,
+        };
+    }
+
+    function opportunityBarsOption(payload) {
+        if (!validOpportunityBarsPayload(payload)) {
+            return null;
+        }
+
+        const categories = seriesLabels(payload);
+        const ink = themeValue('--cpi-color-ink', '#061126');
+        const grid = themeValue('--cpi-chart-grid-color', 'rgba(100,116,139,0.18)');
+        const recordCounts = Array.isArray(payload.record_counts) ? payload.record_counts : [];
+        const metricColor = (name) => {
+            const normalised = text(name).toLowerCase();
+
+            if (normalised.includes('poor')) {
+                return themeValue('--cpi-chart-series-five-color', '#d6674f');
+            }
+
+            if (normalised.includes('retrofit')) {
+                return themeValue('--cpi-chart-series-three-color', '#9ec7bd');
+            }
+
+            return themeValue('--cpi-chart-series-four-color', '#c7973e');
+        };
+        const supportedSeries = (payload.series || []).filter((series) => Array.isArray(series?.data)).slice(0, 3);
+        const maxGap = Math.max(25, ...supportedSeries
+            .filter((series) => text(series.unit) === 'score_points')
+            .flatMap((series) => series.data.map((value) => number(value) || 0)));
+        const panelHeight = Math.max(118, categories.length * 30 + 26);
+        const panelGap = 48;
+        const panelTop = 42;
+        const chartHeight = panelTop + (supportedSeries.length * panelHeight) + ((supportedSeries.length - 1) * panelGap) + 28;
+
+        return {
+            ...baseEchartOption(),
+            title: supportedSeries.map((series, index) => ({
+                text: text(series.name || 'Metric'),
+                left: 0,
+                top: panelTop + (index * (panelHeight + panelGap)) - 30,
+                textStyle: {
+                    color: ink,
+                    fontSize: 13,
+                    fontWeight: 850,
+                },
+            })),
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                confine: true,
+                backgroundColor: '#fff',
+                borderColor: themeValue('--cpi-color-border', 'rgba(100,116,139,0.22)'),
+                borderWidth: 1,
+                padding: [9, 11],
+                textStyle: {
+                    color: ink,
+                    fontSize: 13,
+                    fontWeight: 600,
+                },
+                extraCssText: 'box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12); border-radius: 6px; max-width: 230px; white-space: normal;',
+                formatter: (params) => {
+                    const items = Array.isArray(params) ? params : [params];
+                    const category = text(items[0]?.axisValue || '');
+                    const categoryIndex = categories.indexOf(category);
+                    const count = number(recordCounts[categoryIndex]);
+
+                    return [
+                        '<div style="font-size:12px;line-height:1.45;min-width:190px;">',
+                        `<div style="color:${ink};font-size:13px;font-weight:850;margin-bottom:2px;">${category}</div>`,
+                        count === null ? '' : `<div style="color:#64748b;font-size:11px;margin-bottom:6px;">${formatNumber(count)} EPC certificate records</div>`,
+                        ...supportedSeries.map((series) => {
+                            const value = number(series.data[categoryIndex]);
+                            const unit = text(series.unit || '');
+
+                            if (value === null) {
+                                return '';
+                            }
+
+                            return `<div style="display:flex;gap:12px;justify-content:space-between;"><span style="color:#64748b;">${text(series.name)}</span><strong>${formatNumber(value)}${unit === 'percent' ? '%' : ' pts'}</strong></div>`;
+                        }),
+                        '</div>',
+                    ].filter(Boolean).join('');
+                },
+            },
+            grid: supportedSeries.map((series, index) => ({
+                left: 190,
+                right: 104,
+                top: panelTop + (index * (panelHeight + panelGap)),
+                height: panelHeight,
+                containLabel: true,
+            })),
+            xAxis: supportedSeries.map((series, index) => {
+                const unit = text(series.unit || '');
+
+                return {
+                    type: 'value',
+                    gridIndex: index,
+                    max: unit === 'percent' ? 100 : Math.ceil(maxGap / 5) * 5,
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    splitLine: { lineStyle: { color: grid } },
+                    axisLabel: {
+                        formatter: (value) => unit === 'percent' ? `${value}%` : `${value} pts`,
+                        fontSize: 10,
+                    },
+                };
+            }),
+            yAxis: supportedSeries.map((series, index) => ({
+                type: 'category',
+                gridIndex: index,
+                data: categories,
+                inverse: true,
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: {
+                    color: ink,
+                    fontWeight: 850,
+                    width: 178,
+                    overflow: 'break',
+                    lineHeight: 14,
+                    formatter: (value) => shortChartLabel(value, 34),
+                },
+            })),
+            series: supportedSeries.map((series, index) => {
+                const unit = text(series.unit || '');
+
+                return {
+                    name: text(series.name || 'Metric'),
+                    type: 'bar',
+                    xAxisIndex: index,
+                    yAxisIndex: index,
+                    data: series.data.map((value) => number(value)),
+                    barMaxWidth: 14,
+                    itemStyle: {
+                        color: metricColor(series.name),
+                        borderRadius: [0, 7, 7, 0],
+                    },
+                    label: {
+                        show: true,
+                        position: 'right',
+                        color: ink,
+                        fontSize: 11,
+                        fontWeight: 850,
+                        formatter: ({ value }) => {
+                            if (number(value) === null) {
+                                return '';
+                            }
+
+                            return `${formatNumber(value)}${unit === 'percent' ? '%' : ' pts'}`;
+                        },
+                    },
+                };
+            }),
+            __cpiHeight: chartHeight,
+        };
+    }
+
+    function seriesOption(payload, chartType, chart = null) {
         if (!validSeriesPayload(payload)) {
             return null;
         }
 
+        const categories = seriesLabels(payload);
         const isRating = chartType === 'rating-comparison';
         const isSource = chartType === 'source-comparison';
+        const hasDenseLegend = isSource && payload.series.length > 4;
+        const isEpcTrend = chartType === 'epc-time-series';
         const usesMedianAxis = chartType === 'monthly-comparison'
             && payload.series.some((series) => text(series.name).toLowerCase().includes('price'));
+        const usesPercentAxis = chartType === 'epc-time-series'
+            && payload.series.some((series) => text(series.unit) === 'percent');
+        const usesPointAxis = chartType === 'epc-time-series'
+            && payload.series.some((series) => text(series.unit) === 'points');
         const ink = themeValue('--cpi-color-ink', '#061126');
         const grid = themeValue('--cpi-chart-grid-color', 'rgba(100,116,139,0.18)');
         const axis = themeValue('--cpi-chart-grid-color', '#d7dee2');
@@ -901,13 +1523,18 @@
                 ? payload.series.map((series) => monthlyColor(text(series.name || 'Series')))
                 : chartPalette(),
             legend: {
-                top: 0,
-                left: 'center',
-                width: '88%',
-                itemGap: chartType === 'monthly-comparison' ? 12 : 14,
+                type: hasDenseLegend ? 'scroll' : 'plain',
+                orient: hasDenseLegend ? 'vertical' : 'horizontal',
+                top: hasDenseLegend ? 18 : (isSource ? 10 : 0),
+                left: hasDenseLegend ? 'auto' : 'center',
+                right: hasDenseLegend ? 0 : (isSource ? 16 : 'auto'),
+                width: hasDenseLegend ? 190 : (isSource ? '82%' : undefined),
+                height: hasDenseLegend ? 120 : undefined,
+                itemGap: hasDenseLegend ? 9 : (isSource ? 18 : (chartType === 'monthly-comparison' ? 12 : 14)),
                 itemHeight: chartType === 'monthly-comparison' ? 9 : 10,
                 itemWidth: chartType === 'monthly-comparison' ? 18 : 20,
-                textStyle: { color: ink, fontSize: chartType === 'monthly-comparison' ? 11 : 12, fontWeight: 700 },
+                textStyle: { color: ink, fontSize: isSource ? 10 : (chartType === 'monthly-comparison' ? 11 : 12), fontWeight: 700 },
+                formatter: (name) => shortChartLabel(name, hasDenseLegend ? 24 : (isSource ? 22 : 34)),
             },
             grid: chartType === 'monthly-comparison'
                 ? {
@@ -917,17 +1544,33 @@
                     bottom: 8,
                     containLabel: true,
                 }
-                : baseEchartOption().grid,
+                : (isEpcTrend
+                    ? {
+                        left: 46,
+                        right: 38,
+                        top: 62,
+                        bottom: 34,
+                        containLabel: true,
+                    }
+                    : {
+                        ...baseEchartOption().grid,
+                        left: isSource ? 44 : baseEchartOption().grid.left,
+                        right: hasDenseLegend ? 230 : (isSource ? 38 : baseEchartOption().grid.right),
+                        bottom: isSource ? 42 : baseEchartOption().grid.bottom,
+                        top: isSource ? (hasDenseLegend ? 34 : 84) : (payload.series.length > 4 ? 72 : baseEchartOption().grid.top),
+                    }),
             xAxis: {
                 type: 'category',
-                data: payload.categories,
+                data: categories,
                 boundaryGap: isRating,
                 axisLine: { lineStyle: { color: axis } },
                 axisTick: { show: false },
                 axisLabel: {
                     color: ink,
                     interval: 0,
-                    rotate: payload.categories.length > 6 ? 22 : 0,
+                    hideOverlap: true,
+                    margin: 12,
+                    rotate: isEpcTrend ? 0 : (categories.length > 6 ? 22 : 0),
                 },
             },
             yAxis: usesMedianAxis ? [
@@ -951,6 +1594,9 @@
                 axisLine: { show: false },
                 axisTick: { show: false },
                 splitLine: { lineStyle: { color: grid } },
+                axisLabel: usesPercentAxis
+                    ? { formatter: (value) => `${value}%` }
+                    : (usesPointAxis ? { formatter: (value) => `${value} pts` } : undefined),
             },
             series: payload.series.map((series, index) => {
                 const name = text(series.name || 'Series');
@@ -983,8 +1629,16 @@
             return validDistributionPayload(payload) ? distributionOption(payload) : null;
         }
 
-        if (type === 'monthly-comparison' || type === 'source-comparison' || type === 'rating-comparison') {
-            return seriesOption(payload, type);
+        if (type === 'epc-fuel-property-mix') {
+            return fuelPropertyMixOption(payload);
+        }
+
+        if (type === 'epc-opportunity-bars') {
+            return opportunityBarsOption(payload);
+        }
+
+        if (type === 'monthly-comparison' || type === 'source-comparison' || type === 'rating-comparison' || type === 'epc-time-series') {
+            return seriesOption(payload, type, chart);
         }
 
         return null;
@@ -1015,6 +1669,10 @@
             target.style.display = 'block';
             const instance = chart.__cpiEchart || window.echarts.init(target, null, { renderer: 'svg' });
             chart.__cpiEchart = instance;
+            if (option.__cpiHeight) {
+                target.style.blockSize = `${option.__cpiHeight}px`;
+            }
+            delete option.__cpiHeight;
             instance.setOption(option, true);
             chart.classList.add(`${prefixFor(chart)}-chart--echarts-ready`);
             target.setAttribute('aria-hidden', 'false');
@@ -1055,6 +1713,7 @@
 
         if (module) {
             updateModule(module);
+            updateUrlForModule(module);
         }
     }
 
@@ -1071,6 +1730,7 @@
 
         if (module) {
             updateModule(module);
+            updateUrlForModule(module);
         }
     }
 
@@ -1163,6 +1823,7 @@
         });
 
         updateModule(module);
+        updateUrlForModule(module);
     }
 
     function normaliseNearMeSearchInput(value) {
@@ -1219,7 +1880,10 @@
     }
 
     function init(root) {
-        root.querySelectorAll('[data-cpi-module-root]').forEach(updateModule);
+        root.querySelectorAll('[data-cpi-module-root]').forEach((module) => {
+            applyUrlControls(module);
+            updateModule(module);
+        });
 
         root.addEventListener('click', (event) => {
             const selectOption = event.target.closest('[data-cpi-select-option]');

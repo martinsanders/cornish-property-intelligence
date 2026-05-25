@@ -426,6 +426,56 @@
     padding: clamp(1rem, 1.8vw, 1.35rem);
 }
 
+.cpi-location-data-studio--controls,
+.cpi-postcode-area-data-studio--controls,
+.cpi-location-data-studio--epc,
+.cpi-postcode-area-data-studio--epc {
+    background: color-mix(in srgb, var(--cpi-color-card) 94%, var(--cpi-color-primary));
+    gap: 0.55rem;
+    padding: clamp(0.75rem, 1.3vw, 1rem);
+}
+
+.cpi-location-data-studio--controls .cpi-location-data-studio__eyebrow,
+.cpi-postcode-area-data-studio--controls .cpi-postcode-area-data-studio__eyebrow,
+.cpi-location-data-studio--controls .cpi-location-data-studio__title,
+.cpi-postcode-area-data-studio--controls .cpi-postcode-area-data-studio__title,
+.cpi-location-data-studio--controls .cpi-location-data-studio__summary,
+.cpi-postcode-area-data-studio--controls .cpi-postcode-area-data-studio__summary,
+.cpi-location-data-studio--controls .cpi-location-data-studio__coverage,
+.cpi-postcode-area-data-studio--controls .cpi-postcode-area-data-studio__coverage,
+.cpi-location-data-studio--epc .cpi-location-data-studio__eyebrow,
+.cpi-postcode-area-data-studio--epc .cpi-postcode-area-data-studio__eyebrow,
+.cpi-location-data-studio--epc .cpi-location-data-studio__title,
+.cpi-postcode-area-data-studio--epc .cpi-postcode-area-data-studio__title,
+.cpi-location-data-studio--epc .cpi-location-data-studio__summary,
+.cpi-postcode-area-data-studio--epc .cpi-postcode-area-data-studio__summary,
+.cpi-location-data-studio--epc .cpi-location-data-studio__coverage,
+.cpi-postcode-area-data-studio--epc .cpi-postcode-area-data-studio__coverage {
+    display: none;
+}
+
+@media (min-width: 783px) {
+    .cpi-location-data-studio--controls,
+    .cpi-postcode-area-data-studio--controls,
+    .cpi-location-data-studio--epc,
+    .cpi-postcode-area-data-studio--epc {
+        align-items: end;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.38rem 0.65rem;
+        padding: 0.5rem 0.65rem;
+        position: sticky;
+        top: calc(var(--wp-admin--admin-bar--height, 0px) + 0.75rem);
+        z-index: 5;
+    }
+
+    body.admin-bar .cpi-location-data-studio--controls,
+    body.admin-bar .cpi-postcode-area-data-studio--controls,
+    body.admin-bar .cpi-location-data-studio--epc,
+    body.admin-bar .cpi-postcode-area-data-studio--epc {
+        top: calc(32px + 0.75rem);
+    }
+}
+
 .cpi-location-data-studio__eyebrow,
 .cpi-postcode-area-data-studio__eyebrow {
     color: var(--cpi-color-primary);
@@ -439,6 +489,16 @@
 .cpi-location-data-studio__title,
 .cpi-postcode-area-data-studio__title {
     margin: 0;
+}
+
+.cpi-location-data-studio--epc .cpi-location-data-studio__eyebrow,
+.cpi-postcode-area-data-studio--epc .cpi-postcode-area-data-studio__eyebrow {
+    font-size: 0.68rem;
+}
+
+.cpi-location-data-studio--epc .cpi-location-data-studio__title,
+.cpi-postcode-area-data-studio--epc .cpi-postcode-area-data-studio__title {
+    font-size: 1rem;
 }
 
 .cpi-location-supporting-evidence__eyebrow,
@@ -495,6 +555,40 @@
     text-transform: uppercase;
 }
 
+.cpi-location-data-studio--controls .cpi-location-data-studio__status,
+.cpi-postcode-area-data-studio--controls .cpi-postcode-area-data-studio__status,
+.cpi-location-data-studio--epc .cpi-location-data-studio__status,
+.cpi-postcode-area-data-studio--epc .cpi-postcode-area-data-studio__status {
+    align-items: center;
+    border-top: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-block-start: 0;
+    padding-block-start: 0;
+}
+
+@media (min-width: 783px) {
+    .cpi-location-data-studio--controls .cpi-location-data-studio__status,
+    .cpi-postcode-area-data-studio--controls .cpi-postcode-area-data-studio__status,
+    .cpi-location-data-studio--epc .cpi-location-data-studio__status,
+    .cpi-postcode-area-data-studio--epc .cpi-postcode-area-data-studio__status {
+        align-self: center;
+        grid-column: 2 / 3;
+        grid-row: 1 / 3;
+        justify-content: end;
+    }
+}
+
+.cpi-location-data-studio--controls .cpi-location-data-studio__summary,
+.cpi-postcode-area-data-studio--controls .cpi-postcode-area-data-studio__summary,
+.cpi-location-data-studio--epc .cpi-location-data-studio__summary,
+.cpi-postcode-area-data-studio--epc .cpi-postcode-area-data-studio__summary {
+    color: var(--cpi-color-muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
 .cpi-location-control-groups,
 .cpi-postcode-area-control-groups {
     align-items: end;
@@ -502,6 +596,32 @@
     gap: 0.8rem;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
     margin-block-start: 0.85rem;
+}
+
+.cpi-location-data-studio--controls .cpi-location-control-groups,
+.cpi-postcode-area-data-studio--controls .cpi-postcode-area-control-groups,
+.cpi-location-data-studio--epc .cpi-location-control-groups,
+.cpi-postcode-area-data-studio--epc .cpi-postcode-area-control-groups {
+    gap: 0.6rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+    margin-block-start: 0;
+}
+
+@media (min-width: 783px) {
+    .cpi-location-data-studio--controls .cpi-location-control-groups,
+    .cpi-postcode-area-data-studio--controls .cpi-postcode-area-control-groups,
+    .cpi-location-data-studio--epc .cpi-location-control-groups,
+    .cpi-postcode-area-data-studio--epc .cpi-postcode-area-control-groups {
+        align-items: center;
+        grid-column: 1 / 2;
+        gap: 0.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+    }
+
+    .cpi-location-data-studio--epc .cpi-location-control-groups,
+    .cpi-postcode-area-data-studio--epc .cpi-postcode-area-control-groups {
+        grid-template-columns: minmax(13rem, 1.15fr) minmax(12rem, 1fr) minmax(9rem, 0.74fr);
+    }
 }
 
 .cpi-location-control-groups:has(.cpi-location-control-group:only-child),
@@ -516,6 +636,16 @@
     position: relative;
 }
 
+.cpi-location-control-group[data-cpi-control-muted],
+.cpi-postcode-area-control-group[data-cpi-control-muted] {
+    opacity: 0.58;
+}
+
+.cpi-location-control-group[data-cpi-control-muted] .cpi-location-select__button,
+.cpi-postcode-area-control-group[data-cpi-control-muted] .cpi-postcode-area-select__button {
+    cursor: help;
+}
+
 .cpi-location-control-group__label,
 .cpi-postcode-area-control-group__label {
     color: var(--cpi-color-muted);
@@ -524,6 +654,77 @@
     letter-spacing: 0.04em;
     margin: 0;
     text-transform: uppercase;
+}
+
+.cpi-location-data-studio--controls .cpi-location-control-group__label,
+.cpi-postcode-area-data-studio--controls .cpi-postcode-area-control-group__label,
+.cpi-location-data-studio--epc .cpi-location-control-group__label,
+.cpi-postcode-area-data-studio--epc .cpi-postcode-area-control-group__label {
+    font-size: 0.7rem;
+}
+
+@media (min-width: 783px) {
+    .cpi-location-data-studio--controls .cpi-location-control-group,
+    .cpi-postcode-area-data-studio--controls .cpi-postcode-area-control-group,
+    .cpi-location-data-studio--epc .cpi-location-control-group,
+    .cpi-postcode-area-data-studio--epc .cpi-postcode-area-control-group {
+        gap: 0;
+    }
+
+    .cpi-location-data-studio--controls .cpi-location-control-group__label,
+    .cpi-postcode-area-data-studio--controls .cpi-postcode-area-control-group__label,
+    .cpi-location-data-studio--epc .cpi-location-control-group__label,
+    .cpi-postcode-area-data-studio--epc .cpi-postcode-area-control-group__label {
+        display: none;
+    }
+}
+
+.cpi-location-current-view,
+.cpi-postcode-area-current-view {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+@media (min-width: 783px) {
+    .cpi-location-current-view,
+    .cpi-postcode-area-current-view {
+        grid-column: 1 / 2;
+        gap: 0.3rem;
+    }
+}
+
+.cpi-location-current-view__item,
+.cpi-postcode-area-current-view__item {
+    align-items: baseline;
+    background: var(--cpi-color-soft);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-pill-radius);
+    color: var(--cpi-color-muted);
+    display: inline-flex;
+    font-size: 0.78rem;
+    gap: 0.35rem;
+    max-inline-size: 100%;
+    padding: 0.34rem 0.58rem;
+}
+
+@media (min-width: 783px) {
+    .cpi-location-current-view__item,
+    .cpi-postcode-area-current-view__item {
+        font-size: 0.72rem;
+        padding: 0.2rem 0.44rem;
+    }
+}
+
+.cpi-location-current-view__item strong,
+.cpi-postcode-area-current-view__item strong {
+    color: var(--cpi-color-ink);
+    font-weight: 900;
+    min-inline-size: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .cpi-location-control-select,
@@ -578,6 +779,37 @@
     padding: 0 0.45rem 0 1rem;
     text-align: left;
     width: 100%;
+}
+
+@media (min-width: 783px) {
+    .cpi-location-data-studio--controls .cpi-location-select__button,
+    .cpi-postcode-area-data-studio--controls .cpi-postcode-area-select__button,
+    .cpi-location-data-studio--epc .cpi-location-select__button,
+    .cpi-postcode-area-data-studio--epc .cpi-postcode-area-select__button {
+        block-size: 2.1rem;
+        font-size: 0.82rem;
+        min-block-size: 2.1rem;
+        padding-inline: 0.78rem 0.34rem;
+        text-align: center;
+    }
+
+    .cpi-location-data-studio--controls .cpi-location-select__button span:first-child,
+    .cpi-postcode-area-data-studio--controls .cpi-postcode-area-select__button span:first-child,
+    .cpi-location-data-studio--epc .cpi-location-select__button span:first-child,
+    .cpi-postcode-area-data-studio--epc .cpi-postcode-area-select__button span:first-child {
+        min-inline-size: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .cpi-location-data-studio--controls .cpi-location-select__icon,
+    .cpi-postcode-area-data-studio--controls .cpi-postcode-area-select__icon,
+    .cpi-location-data-studio--epc .cpi-location-select__icon,
+    .cpi-postcode-area-data-studio--epc .cpi-postcode-area-select__icon {
+        height: 1.55rem;
+        width: 1.55rem;
+    }
 }
 
 .cpi-location-select__button:focus-visible,
@@ -703,6 +935,17 @@
     text-transform: uppercase;
 }
 
+@media (min-width: 783px) {
+    .cpi-location-data-studio--controls .cpi-location-control-reset,
+    .cpi-postcode-area-data-studio--controls .cpi-postcode-area-control-reset,
+    .cpi-location-data-studio--epc .cpi-location-control-reset,
+    .cpi-postcode-area-data-studio--epc .cpi-postcode-area-control-reset {
+        font-size: 0.72rem;
+        padding: 0.52rem 0.78rem;
+        white-space: nowrap;
+    }
+}
+
 .cpi-location-control-select:focus,
 .cpi-postcode-area-control-select:focus {
     border-color: var(--cpi-color-primary);
@@ -753,10 +996,501 @@ button.cpi-postcode-area-control-chip {
 .cpi-location-evidence-visuals,
 .cpi-postcode-area-evidence-visuals,
 .cpi-location-evidence-primary,
-.cpi-postcode-area-evidence-primary {
+.cpi-postcode-area-evidence-primary,
+.cpi-location-epc-insight-panels,
+.cpi-postcode-area-epc-insight-panels {
     display: grid;
     gap: 1rem;
     margin-block-start: 0;
+}
+
+.cpi-location-epc-insight-panel,
+.cpi-postcode-area-epc-insight-panel {
+    background: color-mix(in srgb, var(--cpi-color-card) 92%, var(--cpi-color-soft));
+    border: 1px solid var(--cpi-color-border);
+    border-left: 4px solid color-mix(in srgb, var(--cpi-color-primary) 70%, var(--cpi-color-card));
+    border-radius: var(--cpi-radius);
+    display: grid;
+    gap: 0.75rem;
+    padding: clamp(0.75rem, 1.35vw, 1rem);
+}
+
+.cpi-location-epc-insight-panel[hidden],
+.cpi-postcode-area-epc-insight-panel[hidden],
+.cpi-location-chart[hidden],
+.cpi-postcode-area-chart[hidden] {
+    display: none;
+}
+
+.cpi-location-epc-insight-panel__eyebrow,
+.cpi-postcode-area-epc-insight-panel__eyebrow {
+    color: var(--cpi-color-primary);
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.cpi-location-epc-insight-panel__summary,
+.cpi-postcode-area-epc-insight-panel__summary {
+    color: var(--cpi-color-ink);
+    font-size: 0.92rem;
+    line-height: 1.45;
+    margin: 0.2rem 0 0;
+    max-inline-size: 66rem;
+}
+
+.cpi-location-epc-insight-metrics,
+.cpi-postcode-area-epc-insight-metrics {
+    display: grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+    margin: 0;
+}
+
+.cpi-location-epc-insight-guide,
+.cpi-postcode-area-epc-insight-guide {
+    background: color-mix(in srgb, var(--cpi-color-primary) 6%, var(--cpi-color-card));
+    border: 1px solid color-mix(in srgb, var(--cpi-color-primary) 18%, var(--cpi-color-border));
+    border-radius: var(--cpi-radius);
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.72rem 0.8rem;
+}
+
+.cpi-location-epc-insight-guide p,
+.cpi-postcode-area-epc-insight-guide p {
+    color: var(--cpi-color-primary);
+    font-size: 0.82rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    margin: 0;
+    text-transform: none;
+}
+
+.cpi-location-epc-insight-guide ul,
+.cpi-postcode-area-epc-insight-guide ul {
+    align-items: start;
+    display: grid;
+    gap: 0.45rem 0.7rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.cpi-location-epc-insight-guide li,
+.cpi-postcode-area-epc-insight-guide li {
+    align-content: start;
+    display: grid;
+    gap: 0.16rem;
+}
+
+.cpi-location-epc-insight-guide strong,
+.cpi-postcode-area-epc-insight-guide strong {
+    color: var(--cpi-color-ink);
+    font-size: 0.82rem;
+    font-weight: 900;
+}
+
+.cpi-location-epc-insight-guide span,
+.cpi-postcode-area-epc-insight-guide span {
+    color: var(--cpi-color-muted);
+    font-size: 0.82rem;
+    line-height: 1.38;
+    text-wrap: pretty;
+}
+
+.cpi-location-epc-insight-metric,
+.cpi-postcode-area-epc-insight-metric {
+    background: var(--cpi-color-card);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    padding: 0.75rem;
+}
+
+.cpi-location-epc-insight-metric dt,
+.cpi-postcode-area-epc-insight-metric dt {
+    color: var(--cpi-color-muted);
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.cpi-location-epc-insight-metric dd,
+.cpi-postcode-area-epc-insight-metric dd {
+    color: var(--cpi-color-ink);
+    font-size: 1.05rem;
+    font-weight: var(--cpi-strong-weight);
+    margin: 0.2rem 0 0;
+}
+
+.cpi-location-epc-insight-cards,
+.cpi-postcode-area-epc-insight-cards {
+    display: grid;
+    gap: 0.6rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+}
+
+@media (min-width: 900px) {
+    .cpi-location-epc-insight-cards,
+    .cpi-postcode-area-epc-insight-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.cpi-location-epc-insight-card,
+.cpi-postcode-area-epc-insight-card,
+.cpi-location-epc-fuel-row,
+.cpi-postcode-area-epc-fuel-row,
+.cpi-location-epc-opportunity-card,
+.cpi-postcode-area-epc-opportunity-card,
+.cpi-location-epc-signal-row,
+.cpi-postcode-area-epc-signal-row {
+    background: var(--cpi-color-card);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    display: grid;
+    gap: 0.38rem;
+    padding: 0.72rem;
+}
+
+.cpi-location-epc-insight-card__title,
+.cpi-postcode-area-epc-insight-card__title,
+.cpi-location-epc-insight-table-title,
+.cpi-postcode-area-epc-insight-table-title {
+    color: var(--cpi-color-muted);
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.04em;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.cpi-location-epc-insight-card__label,
+.cpi-postcode-area-epc-insight-card__label {
+    color: var(--cpi-color-ink);
+    font-size: 0.95rem;
+    font-weight: var(--cpi-strong-weight);
+    line-height: 1.35;
+    margin: 0;
+    text-wrap: pretty;
+}
+
+.cpi-location-epc-insight-card__value,
+.cpi-postcode-area-epc-insight-card__value {
+    color: var(--cpi-color-primary);
+    font-size: 1.05rem;
+    font-weight: 900;
+    margin: 0;
+}
+
+.cpi-location-epc-insight-card__meta,
+.cpi-postcode-area-epc-insight-card__meta,
+.cpi-location-epc-insight-card__summary,
+.cpi-postcode-area-epc-insight-card__summary,
+.cpi-location-epc-fuel-row p,
+.cpi-postcode-area-epc-fuel-row p,
+.cpi-location-epc-opportunity-card__header span,
+.cpi-postcode-area-epc-opportunity-card__header span,
+.cpi-location-epc-signal-row__header span,
+.cpi-postcode-area-epc-signal-row__header span,
+.cpi-location-epc-signal-row__gap,
+.cpi-postcode-area-epc-signal-row__gap {
+    color: var(--cpi-color-muted);
+    font-size: 0.84rem;
+    line-height: 1.45;
+    margin: 0;
+    text-wrap: pretty;
+}
+
+.cpi-location-epc-insight-table-wrap,
+.cpi-postcode-area-epc-insight-table-wrap,
+.cpi-location-epc-fuel-rows,
+.cpi-postcode-area-epc-fuel-rows,
+.cpi-location-epc-opportunity-grid,
+.cpi-postcode-area-epc-opportunity-grid,
+.cpi-location-epc-signal-bars,
+.cpi-postcode-area-epc-signal-bars {
+    display: grid;
+    gap: 0.75rem;
+}
+
+@media (min-width: 900px) {
+    .cpi-location-epc-signal-bars,
+    .cpi-postcode-area-epc-signal-bars {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.cpi-location-epc-insight-table-wrap,
+.cpi-postcode-area-epc-insight-table-wrap {
+    overflow-x: auto;
+}
+
+.cpi-location-epc-insight-table,
+.cpi-postcode-area-epc-insight-table {
+    border-collapse: collapse;
+    inline-size: 100%;
+    min-inline-size: 38rem;
+}
+
+.cpi-location-epc-insight-table th,
+.cpi-location-epc-insight-table td,
+.cpi-postcode-area-epc-insight-table th,
+.cpi-postcode-area-epc-insight-table td {
+    border-bottom: 1px solid var(--cpi-color-border);
+    padding: 0.55rem 0.45rem;
+    text-align: left;
+    vertical-align: top;
+}
+
+.cpi-location-epc-insight-table th,
+.cpi-postcode-area-epc-insight-table th {
+    color: var(--cpi-color-ink);
+    font-weight: var(--cpi-strong-weight);
+}
+
+.cpi-location-epc-insight-table thead th,
+.cpi-postcode-area-epc-insight-table thead th {
+    color: var(--cpi-color-muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.cpi-location-epc-fuel-rows,
+.cpi-postcode-area-epc-fuel-rows {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.cpi-location-epc-opportunity-grid,
+.cpi-postcode-area-epc-opportunity-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+}
+
+@media (min-width: 900px) {
+    .cpi-location-epc-opportunity-grid,
+    .cpi-postcode-area-epc-opportunity-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.cpi-location-epc-fuel-row,
+.cpi-postcode-area-epc-fuel-row {
+    gap: 0.7rem;
+}
+
+.cpi-location-epc-fuel-row__header,
+.cpi-postcode-area-epc-fuel-row__header,
+.cpi-location-epc-opportunity-card__header,
+.cpi-postcode-area-epc-opportunity-card__header,
+.cpi-location-epc-signal-row__header,
+.cpi-postcode-area-epc-signal-row__header {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    justify-content: space-between;
+}
+
+.cpi-location-epc-fuel-row h5,
+.cpi-postcode-area-epc-fuel-row h5,
+.cpi-location-epc-opportunity-card h5,
+.cpi-postcode-area-epc-opportunity-card h5,
+.cpi-location-epc-signal-row h5,
+.cpi-postcode-area-epc-signal-row h5 {
+    color: var(--cpi-color-ink);
+    font-size: 1rem;
+    margin: 0;
+}
+
+.cpi-location-epc-fuel-stack,
+.cpi-postcode-area-epc-fuel-stack {
+    background: color-mix(in srgb, var(--cpi-color-border) 48%, transparent);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-pill-radius);
+    display: flex;
+    inline-size: 100%;
+    min-block-size: 1.35rem;
+    overflow: hidden;
+}
+
+.cpi-location-epc-fuel-segment,
+.cpi-postcode-area-epc-fuel-segment {
+    align-items: center;
+    block-size: 1.35rem;
+    color: var(--cpi-color-card);
+    display: flex;
+    flex: 0 0 var(--cpi-share);
+    font-size: 0.68rem;
+    font-weight: 850;
+    justify-content: center;
+    min-inline-size: 0;
+    overflow: hidden;
+    padding-inline: 0.2rem;
+    white-space: nowrap;
+}
+
+.cpi-location-epc-fuel-segment span,
+.cpi-postcode-area-epc-fuel-segment span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cpi-location-epc-fuel-segment--1,
+.cpi-postcode-area-epc-fuel-segment--1,
+.cpi-location-epc-fuel-swatch--1,
+.cpi-postcode-area-epc-fuel-swatch--1 {
+    background: var(--cpi-chart-series-one-color);
+}
+
+.cpi-location-epc-fuel-segment--2,
+.cpi-postcode-area-epc-fuel-segment--2,
+.cpi-location-epc-fuel-swatch--2,
+.cpi-postcode-area-epc-fuel-swatch--2 {
+    background: var(--cpi-chart-series-two-color);
+}
+
+.cpi-location-epc-fuel-segment--3,
+.cpi-postcode-area-epc-fuel-segment--3,
+.cpi-location-epc-fuel-swatch--3,
+.cpi-postcode-area-epc-fuel-swatch--3 {
+    background: var(--cpi-chart-series-three-color);
+    color: var(--cpi-color-ink);
+}
+
+.cpi-location-epc-fuel-segment--4,
+.cpi-postcode-area-epc-fuel-segment--4,
+.cpi-location-epc-fuel-swatch--4,
+.cpi-postcode-area-epc-fuel-swatch--4 {
+    background: var(--cpi-chart-series-four-color);
+}
+
+.cpi-location-epc-fuel-segment--5,
+.cpi-postcode-area-epc-fuel-segment--5,
+.cpi-location-epc-fuel-swatch--5,
+.cpi-postcode-area-epc-fuel-swatch--5 {
+    background: var(--cpi-chart-series-five-color);
+}
+
+.cpi-location-epc-fuel-legend,
+.cpi-postcode-area-epc-fuel-legend {
+    display: grid;
+    gap: 0.35rem;
+    list-style: none;
+    margin: 0.25rem 0 0;
+    padding: 0;
+}
+
+.cpi-location-epc-fuel-legend li,
+.cpi-postcode-area-epc-fuel-legend li {
+    align-items: baseline;
+    display: grid;
+    gap: 0.45rem;
+    grid-template-columns: 0.65rem minmax(0, 1fr) auto;
+}
+
+.cpi-location-epc-fuel-legend li span,
+.cpi-postcode-area-epc-fuel-legend li span {
+    min-inline-size: 0;
+}
+
+.cpi-location-epc-fuel-swatch,
+.cpi-postcode-area-epc-fuel-swatch {
+    align-self: center;
+    block-size: 0.65rem;
+    border-radius: var(--cpi-pill-radius);
+    inline-size: 0.65rem;
+}
+
+.cpi-location-epc-fuel-legend li strong,
+.cpi-postcode-area-epc-fuel-legend li strong {
+    color: var(--cpi-color-primary);
+    white-space: nowrap;
+}
+
+.cpi-location-epc-fuel-legend em,
+.cpi-postcode-area-epc-fuel-legend em {
+    color: var(--cpi-color-muted);
+    font-style: normal;
+    font-weight: 700;
+}
+
+.cpi-location-epc-opportunity-card,
+.cpi-postcode-area-epc-opportunity-card,
+.cpi-location-epc-signal-row,
+.cpi-postcode-area-epc-signal-row {
+    gap: 0.65rem;
+}
+
+.cpi-location-epc-signal-row__meters,
+.cpi-postcode-area-epc-signal-row__meters {
+    display: grid;
+    gap: 0.48rem;
+}
+
+.cpi-location-epc-insight-meter,
+.cpi-postcode-area-epc-insight-meter {
+    display: grid;
+    gap: 0.3rem;
+}
+
+.cpi-location-epc-insight-meter__label,
+.cpi-postcode-area-epc-insight-meter__label {
+    align-items: baseline;
+    color: var(--cpi-color-muted);
+    display: flex;
+    font-size: 0.78rem;
+    gap: 0.6rem;
+    justify-content: space-between;
+    line-height: 1.35;
+}
+
+.cpi-location-epc-insight-meter__label strong,
+.cpi-postcode-area-epc-insight-meter__label strong {
+    color: var(--cpi-color-ink);
+    white-space: nowrap;
+}
+
+.cpi-location-epc-insight-meter__track,
+.cpi-postcode-area-epc-insight-meter__track {
+    background: color-mix(in srgb, var(--cpi-color-border) 55%, transparent);
+    border-radius: var(--cpi-pill-radius);
+    block-size: 0.55rem;
+    overflow: hidden;
+}
+
+.cpi-location-epc-insight-meter__track span,
+.cpi-postcode-area-epc-insight-meter__track span {
+    background: var(--cpi-color-primary);
+    block-size: 100%;
+    border-radius: inherit;
+    display: block;
+    inline-size: var(--cpi-share);
+    min-inline-size: 0.18rem;
+}
+
+.cpi-location-epc-insight-meter--poor .cpi-location-epc-insight-meter__track span,
+.cpi-postcode-area-epc-insight-meter--poor .cpi-postcode-area-epc-insight-meter__track span {
+    background: var(--cpi-chart-series-five-color);
+}
+
+.cpi-location-epc-insight-meter--signal .cpi-location-epc-insight-meter__track span,
+.cpi-postcode-area-epc-insight-meter--signal .cpi-postcode-area-epc-insight-meter__track span {
+    background: var(--cpi-chart-series-three-color);
+}
+
+.cpi-location-epc-insight-meter--gap .cpi-location-epc-insight-meter__track span,
+.cpi-postcode-area-epc-insight-meter--gap .cpi-postcode-area-epc-insight-meter__track span {
+    background: var(--cpi-chart-series-four-color);
+}
+
+.cpi-location-epc-insight-meter--records .cpi-location-epc-insight-meter__track span,
+.cpi-postcode-area-epc-insight-meter--records .cpi-postcode-area-epc-insight-meter__track span {
+    background: var(--cpi-chart-series-one-color);
 }
 
 .cpi-location-evidence-secondary,
@@ -787,7 +1521,13 @@ button.cpi-postcode-area-control-chip {
     .cpi-location-chart--source-comparison,
     .cpi-postcode-area-chart--source-comparison,
     .cpi-location-chart--rating-comparison,
-    .cpi-postcode-area-chart--rating-comparison {
+    .cpi-postcode-area-chart--rating-comparison,
+    .cpi-location-chart--epc-time-series,
+    .cpi-postcode-area-chart--epc-time-series,
+    .cpi-location-chart--epc-fuel-property-mix,
+    .cpi-postcode-area-chart--epc-fuel-property-mix,
+    .cpi-location-chart--epc-opportunity-bars,
+    .cpi-postcode-area-chart--epc-opportunity-bars {
         grid-column: 1 / -1;
     }
 }
@@ -803,7 +1543,10 @@ button.cpi-postcode-area-control-chip {
 
 .cpi-location-chart--monthly-comparison .cpi-location-echart,
 .cpi-location-chart--source-comparison .cpi-location-echart,
-.cpi-location-chart--rating-comparison .cpi-location-echart {
+.cpi-location-chart--rating-comparison .cpi-location-echart,
+.cpi-postcode-area-chart--rating-comparison .cpi-postcode-area-echart,
+.cpi-location-chart--epc-time-series .cpi-location-echart,
+.cpi-postcode-area-chart--epc-time-series .cpi-postcode-area-echart {
     block-size: 19rem;
 }
 
@@ -813,6 +1556,73 @@ button.cpi-postcode-area-control-chip {
 
 .cpi-postcode-area-chart--distribution .cpi-postcode-area-echart {
     block-size: 18rem;
+}
+
+.cpi-location-chart--epc-fuel-property-mix .cpi-location-echart,
+.cpi-postcode-area-chart--epc-fuel-property-mix .cpi-postcode-area-echart {
+    block-size: 18rem;
+}
+
+.cpi-location-chart--epc-opportunity-bars .cpi-location-echart,
+.cpi-postcode-area-chart--epc-opportunity-bars .cpi-postcode-area-echart {
+    block-size: 19rem;
+}
+
+.cpi-location-epc-fuel-chart-fallback,
+.cpi-postcode-area-epc-fuel-chart-fallback {
+    display: grid;
+    gap: 0.75rem;
+    margin-block-start: 0.75rem;
+}
+
+.cpi-location-epc-fuel-chart-fallback-row,
+.cpi-postcode-area-epc-fuel-chart-fallback-row {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.cpi-location-epc-fuel-chart-fallback-row > span,
+.cpi-postcode-area-epc-fuel-chart-fallback-row > span {
+    color: var(--cpi-color-ink);
+    font-weight: 850;
+}
+
+.cpi-location-epc-opportunity-chart-fallback,
+.cpi-postcode-area-epc-opportunity-chart-fallback {
+    display: grid;
+    gap: 0.75rem;
+    margin-block-start: 0.75rem;
+}
+
+.cpi-location-epc-opportunity-chart-fallback-row,
+.cpi-postcode-area-epc-opportunity-chart-fallback-row {
+    background: var(--cpi-color-card);
+    border: 1px solid var(--cpi-color-border);
+    border-radius: var(--cpi-radius);
+    display: grid;
+    gap: 0.45rem;
+    padding: 0.75rem;
+}
+
+.cpi-location-epc-opportunity-chart-fallback-row h5,
+.cpi-postcode-area-epc-opportunity-chart-fallback-row h5 {
+    margin: 0;
+}
+
+.cpi-location-epc-opportunity-chart-fallback-row ul,
+.cpi-postcode-area-epc-opportunity-chart-fallback-row ul {
+    display: grid;
+    gap: 0.25rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.cpi-location-epc-opportunity-chart-fallback-row li,
+.cpi-postcode-area-epc-opportunity-chart-fallback-row li {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
 }
 
 .cpi-location-chart__status,
@@ -1069,19 +1879,39 @@ button.cpi-postcode-area-control-chip {
 }
 
 .cpi-location-supporting-card--module-epc_status .cpi-location-metrics {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .cpi-location-supporting-card--module-epc_status .cpi-location-metric {
     background: var(--cpi-color-card);
-    padding: 1rem;
+    align-content: start;
+    min-inline-size: 0;
+    padding: clamp(0.72rem, 1vw, 0.9rem);
+}
+
+.cpi-location-supporting-card--module-epc_status .cpi-location-metric dt {
+    font-size: clamp(0.68rem, 0.78vw, 0.76rem);
+    line-height: 1.2;
+    text-wrap: balance;
 }
 
 .cpi-location-supporting-card--module-epc_status .cpi-location-metric dd {
     font-family: var(--cpi-heading-font);
-    font-size: var(--cpi-metric-value-size);
+    font-size: clamp(1.5rem, 2.35vw, 2rem);
     font-weight: var(--cpi-heading-weight);
     line-height: 1;
+}
+
+@media (max-width: 1180px) {
+    .cpi-location-supporting-card--module-epc_status .cpi-location-metrics {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 680px) {
+    .cpi-location-supporting-card--module-epc_status .cpi-location-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 .cpi-location-supporting-evidence__grid,

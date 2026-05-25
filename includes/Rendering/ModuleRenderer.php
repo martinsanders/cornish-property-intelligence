@@ -45,6 +45,7 @@ final class ModuleRenderer
         $body = is_array($module) ? $this->text($module['body'] ?? $module['description'] ?? '') : '';
         $geography = is_array($module) ? $this->text($module['geography_label'] ?? '') : '';
         $moduleType = is_array($module) ? $this->text($module['module_type'] ?? $key) : (string) $key;
+        $moduleKey = sanitize_key($moduleType !== '' ? $moduleType : (string) $key);
         $moduleLabel = $this->moduleLabel($moduleType, $title);
         $moduleQuestion = $this->moduleQuestion($moduleType, $title, $geography);
         $showAnswerPrefix = $moduleType !== 'executive_answer';
@@ -54,7 +55,7 @@ final class ModuleRenderer
 
         ob_start();
         ?>
-        <article class="<?php echo esc_attr($classPrefix); ?>-module <?php echo esc_attr($classPrefix); ?>-module--<?php echo esc_attr(sanitize_html_class($moduleType)); ?>" data-cpi-module-root>
+        <article class="<?php echo esc_attr($classPrefix); ?>-module <?php echo esc_attr($classPrefix); ?>-module--<?php echo esc_attr(sanitize_html_class($moduleType)); ?>" data-cpi-module-root data-cpi-module-key="<?php echo esc_attr($moduleKey); ?>">
             <header class="<?php echo esc_attr($classPrefix); ?>-module__header">
                 <?php if ($moduleType === 'executive_answer' && $moduleLabel !== '') : ?>
                     <p class="<?php echo esc_attr($classPrefix); ?>-module__eyebrow"><?php echo esc_html($moduleLabel); ?></p>
@@ -224,10 +225,21 @@ final class ModuleRenderer
         $groups = is_array($module['control_groups'] ?? null)
             ? $module['control_groups']
             : (is_array($control['groups'] ?? null) ? $control['groups'] : []);
+        $groups = $this->withEpcInsightControlGroup($module, $groups);
         $title = $this->text($control['title'] ?? '');
         $summary = $this->text($module['current_view_summary'] ?? $control['summary'] ?? '');
         $coverage = $this->text($module['coverage_line'] ?? $control['coverage'] ?? '');
         $missing = is_array($control['missing'] ?? null) ? $control['missing'] : [];
+        $isEpcModule = $this->text($module['module_type'] ?? '') === 'epc_status';
+        $sectionClasses = [$classPrefix.'-data-studio'];
+
+        if ($groups !== []) {
+            $sectionClasses[] = $classPrefix.'-data-studio--controls';
+        }
+
+        if ($isEpcModule) {
+            $sectionClasses[] = $classPrefix.'-data-studio--epc';
+        }
 
         if ($title === '' && $summary === '' && $coverage === '' && $groups === [] && $missing === []) {
             return '';
@@ -235,7 +247,7 @@ final class ModuleRenderer
 
         ob_start();
         ?>
-        <section class="<?php echo esc_attr($classPrefix); ?>-data-studio" aria-label="<?php echo esc_attr__('Data controls', 'cornish-property-intelligence'); ?>">
+        <section class="<?php echo esc_attr(implode(' ', $sectionClasses)); ?>" aria-label="<?php echo esc_attr__('Data controls', 'cornish-property-intelligence'); ?>">
             <p class="<?php echo esc_attr($classPrefix); ?>-data-studio__eyebrow"><?php echo esc_html__('Data Studio controls', 'cornish-property-intelligence'); ?></p>
 
             <?php if ($title !== '') : ?>
@@ -243,6 +255,10 @@ final class ModuleRenderer
             <?php endif; ?>
 
             <?php echo $this->controlGroups($groups, $classPrefix); ?>
+
+            <?php if ($groups !== []) : ?>
+                <?php echo $this->currentViewContext($groups, $classPrefix); ?>
+            <?php endif; ?>
 
             <?php if ($missing !== []) : ?>
                 <ul class="<?php echo esc_attr($classPrefix); ?>-data-studio__missing">
@@ -278,6 +294,83 @@ final class ModuleRenderer
         <?php
 
         return (string) ob_get_clean();
+    }
+
+    /**
+     * @param array<int, mixed> $groups
+     */
+    private function currentViewContext(array $groups, string $classPrefix): string
+    {
+        $items = [];
+
+        foreach ($groups as $group) {
+            if (! is_array($group)) {
+                continue;
+            }
+
+            $key = $this->text($group['key'] ?? '');
+            $label = $this->text($group['label'] ?? $key);
+            $value = $this->activeControlOptionLabel($group);
+
+            if ($key === '' || $label === '' || $value === '') {
+                continue;
+            }
+
+            $items[] = '<span class="'.esc_attr($classPrefix).'-current-view__item" data-cpi-current-view-item aria-label="'.esc_attr(sprintf('%s: %s', $label, $value)).'">'
+                .'<span>'.esc_html($label).'</span>'
+                .'<strong data-cpi-current-view-value="'.esc_attr($key).'">'.esc_html($value).'</strong>'
+                .'</span>';
+        }
+
+        if ($items === []) {
+            return '';
+        }
+
+        return '<div class="'.esc_attr($classPrefix).'-current-view" aria-live="polite">'.implode('', $items).'</div>';
+    }
+
+    /**
+     * @param array<int, mixed> $groups
+     * @return array<string, mixed>|null
+     */
+    private function controlGroupByKey(array $groups, string $key): ?array
+    {
+        foreach ($groups as $group) {
+            if (is_array($group) && $this->text($group['key'] ?? '') === $key) {
+                return $group;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $group
+     */
+    private function activeControlOptionLabel(array $group): string
+    {
+        $options = is_array($group['options'] ?? null) ? $group['options'] : [];
+        $first = '';
+
+        foreach ($options as $option) {
+            if (! is_array($option)) {
+                continue;
+            }
+
+            $label = $this->text($option['label'] ?? $option['value'] ?? '');
+
+            if ($label === '') {
+                continue;
+            }
+
+            $first = $first === '' ? $label : $first;
+
+            if (($option['active'] ?? false) === true) {
+                return $label;
+            }
+        }
+
+        return $first;
     }
 
     /**
@@ -393,7 +486,1312 @@ final class ModuleRenderer
             'trade_focus',
             'time_span',
             'epc_view',
+            'epc_insight_view',
+            'epc_time_range',
         ], true);
+    }
+
+    /**
+     * @param array<string, mixed> $module
+     * @param array<int, mixed> $groups
+     * @return array<int, mixed>
+     */
+    private function withEpcInsightControlGroup(array $module, array $groups): array
+    {
+        if ($this->text($module['module_type'] ?? '') !== 'epc_status') {
+            return $groups;
+        }
+
+        $groups = array_values(array_filter($groups, function (mixed $group): bool {
+            return ! is_array($group) || $this->text($group['key'] ?? '') !== 'epc_trend_metric';
+        }));
+
+        $trendSeries = $this->epcTrendSeries($module);
+        $insights = $this->epcInsights($module);
+        $hasFuelTrend = $this->epcInsightTrendPayload($module, 'fuel_trends') !== null || $this->epcFuelTrendPayload($module) !== null;
+        $hasPropertyTypeTrend = $this->epcInsightTrendPayload($module, 'property_type_trends') !== null;
+        $hasPropertyOpportunity = $this->epcInsightRows($insights, 'poor_rating_by_property_type') !== []
+            || $this->epcInsightRows($insights, 'improvement_gap_by_property_type') !== []
+            || $this->epcInsightRows($insights, 'retrofit_signal_by_property_type') !== [];
+        $hasFuelByPropertyType = $this->epcInsightRows($insights, 'fuel_by_property_type') !== [];
+
+        if (count($trendSeries) < 2 && ! $hasFuelTrend && ! $hasPropertyTypeTrend && ! $hasPropertyOpportunity && ! $hasFuelByPropertyType) {
+            return $groups;
+        }
+
+        $options = [
+            [
+                'value' => 'retrofit_opportunity',
+                'label' => 'Retrofit opportunity',
+                'active' => true,
+            ],
+            [
+                'value' => 'rating_profile',
+                'label' => 'Rating profile',
+                'active' => false,
+            ],
+            [
+                'value' => 'evidence_volume',
+                'label' => 'Evidence volume',
+                'active' => false,
+            ],
+        ];
+
+        if ($hasFuelTrend) {
+            $options[] = [
+                'value' => 'fuel_heating',
+                'label' => 'Fuel / heating trend',
+                'active' => false,
+            ];
+        }
+
+        if ($hasPropertyTypeTrend) {
+            $options[] = [
+                'value' => 'property_type_trend',
+                'label' => 'Property type trend',
+                'active' => false,
+            ];
+        }
+
+        if ($hasPropertyOpportunity) {
+            $options[] = [
+                'value' => 'property_type_opportunity',
+                'label' => 'Property type opportunity',
+                'active' => false,
+            ];
+        }
+
+        if ($hasFuelByPropertyType) {
+            $options[] = [
+                'value' => 'fuel_by_property_type',
+                'label' => 'Fuel by property type',
+                'active' => false,
+            ];
+        }
+
+        array_unshift($groups, [
+            'key' => 'epc_insight_view',
+            'label' => 'Insight view',
+            'options' => $options,
+        ]);
+
+        $hasTimelineTrend = count($trendSeries) >= 2 || $hasFuelTrend || $hasPropertyTypeTrend;
+
+        if ($hasTimelineTrend) {
+            $groups[] = [
+                'key' => 'epc_time_range',
+                'label' => 'Timeline',
+                'options' => [
+                    [
+                        'value' => 'latest_period',
+                        'label' => 'Latest year',
+                        'active' => false,
+                    ],
+                    [
+                        'value' => 'latest_3_years',
+                        'label' => 'Latest 3 years',
+                        'active' => true,
+                    ],
+                    [
+                        'value' => 'latest_5_years',
+                        'label' => 'Latest 5 years',
+                        'active' => false,
+                    ],
+                    [
+                        'value' => 'latest_10_years',
+                        'label' => 'Latest 10 years',
+                        'active' => false,
+                    ],
+                    [
+                        'value' => 'all_periods',
+                        'label' => 'All records',
+                        'active' => false,
+                    ],
+                ],
+            ];
+        }
+
+        return $groups;
+    }
+
+    /**
+     * @param array<string, mixed> $module
+     * @return array<int, array<string, mixed>>
+     */
+    private function epcTrendSeries(array $module): array
+    {
+        $charts = is_array($module['interactive_charts'] ?? null) ? $module['interactive_charts'] : [];
+
+        foreach ($charts as $chart) {
+            if (! is_array($chart) || $this->text($chart['type'] ?? '') !== 'epc-time-series') {
+                continue;
+            }
+
+            $payload = is_array($chart['payload'] ?? null) ? $chart['payload'] : [];
+            $series = is_array($payload['series'] ?? null) ? $payload['series'] : [];
+
+            return array_values(array_filter($series, fn (mixed $seriesItem): bool => is_array($seriesItem)));
+        }
+
+        return [];
+    }
+
+    private function epcTrendMetricLabel(string $metric, string $fallback): string
+    {
+        return match ($metric) {
+            'record_count' => 'EPC records',
+            'poor_rating_share' => 'Poor-rating share',
+            'average_current_efficiency' => 'Avg current efficiency',
+            'average_potential_efficiency' => 'Avg potential efficiency',
+            'average_improvement_gap' => 'Avg improvement gap',
+            default => $fallback,
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $module
+     * @param array<int, mixed> $charts
+     * @return array<int, mixed>
+     */
+    private function epcInsightCharts(array $module, array $charts): array
+    {
+        $insightCharts = [];
+
+        foreach ($charts as $chart) {
+            if (! is_array($chart)) {
+                continue;
+            }
+
+            $type = $this->text($chart['type'] ?? '');
+
+            if ($type === 'rating-comparison') {
+                $chart['title'] = 'Current vs potential EPC rating profile';
+                $chart['description'] = 'Approved aggregate EPC certificate rating buckets only.';
+                $chart['insight_views'] = ['retrofit_opportunity', 'rating_profile'];
+                $insightCharts[] = $chart;
+
+                continue;
+            }
+
+            if ($type === 'epc-time-series') {
+                $retrofitChart = $chart;
+                $retrofitChart['title'] = 'Retrofit opportunity over time';
+                $retrofitChart['description'] = 'Poor-rating share and improvement gap are based on EPC certificate records in each period.';
+                $retrofitChart['insight_views'] = ['retrofit_opportunity'];
+                $retrofitChart['default_metric'] = 'poor_rating_share';
+                $insightCharts[] = $retrofitChart;
+
+                $volumeChart = $chart;
+                $volumeChart['title'] = 'EPC assessment records over time';
+                $volumeChart['description'] = 'Certificate records lodged by period; not a count of unique homes.';
+                $volumeChart['insight_views'] = ['evidence_volume'];
+                $volumeChart['default_metric'] = 'record_count';
+                $insightCharts[] = $volumeChart;
+
+                continue;
+            }
+
+            $insightCharts[] = $chart;
+        }
+
+        $fuelPayload = $this->epcInsightTrendPayload($module, 'fuel_trends') ?? $this->epcFuelTrendPayload($module);
+
+        if ($fuelPayload !== null) {
+            $insightCharts[] = [
+                'type' => 'source-comparison',
+                'title' => 'Fuel / heating evidence trend',
+                'description' => 'Main fuel categories recorded on EPC assessments by period.',
+                'payload' => $fuelPayload,
+                'insight_views' => ['fuel_heating'],
+            ];
+        }
+
+        $propertyTrendPayload = $this->epcInsightTrendPayload($module, 'property_type_trends');
+
+        if ($propertyTrendPayload !== null) {
+            $insightCharts[] = [
+                'type' => 'source-comparison',
+                'title' => 'Property type evidence trend',
+                'description' => 'Property type categories recorded on EPC certificate records over time.',
+                'payload' => $propertyTrendPayload,
+                'insight_views' => ['property_type_trend'],
+            ];
+        }
+
+        $fuelByPropertyTypePayload = $this->epcFuelByPropertyTypeChartPayload($module);
+
+        if ($fuelByPropertyTypePayload !== null) {
+            $insightCharts[] = [
+                'type' => 'epc-fuel-property-mix',
+                'title' => 'Main fuel mix by property type',
+                'description' => 'Main fuel categories recorded on EPC certificates within each property type.',
+                'payload' => $fuelByPropertyTypePayload,
+                'insight_views' => ['fuel_by_property_type'],
+            ];
+        }
+
+        $propertyOpportunityPayload = $this->epcPropertyOpportunityChartPayload($module);
+
+        if ($propertyOpportunityPayload !== null) {
+            $insightCharts[] = [
+                'type' => 'epc-opportunity-bars',
+                'title' => 'Property type retrofit opportunity',
+                'description' => 'Longer bars show stronger signals within EPC certificate records for each property type.',
+                'payload' => $propertyOpportunityPayload,
+                'insight_views' => ['retrofit_opportunity', 'property_type_opportunity'],
+            ];
+        }
+
+        $fuelSignalPayload = $this->epcFuelSignalChartPayload($module);
+
+        if ($fuelSignalPayload !== null) {
+            $insightCharts[] = [
+                'type' => 'epc-opportunity-bars',
+                'title' => 'Fuel / heating retrofit signal',
+                'description' => 'Longer bars show stronger signals by the main fuel recorded on EPC assessments.',
+                'payload' => $fuelSignalPayload,
+                'insight_views' => ['fuel_heating'],
+            ];
+        }
+
+        return $insightCharts;
+    }
+
+    /**
+     * @param array<string, mixed> $module
+     * @return array<string, mixed>
+     */
+    private function epcInsights(array $module): array
+    {
+        return is_array($module['epc_insights'] ?? null) ? $module['epc_insights'] : [];
+    }
+
+    /**
+     * @param array<string, mixed> $module
+     * @return array<string, mixed>|null
+     */
+    private function epcInsightTrendPayload(array $module, string $key): ?array
+    {
+        $insights = $this->epcInsights($module);
+        $section = is_array($insights[$key] ?? null) ? $insights[$key] : [];
+        $labels = $this->chartLabels($section['labels'] ?? []);
+        $series = is_array($section['series'] ?? null) ? $section['series'] : [];
+        $safeSeries = [];
+
+        if ($labels === [] || $series === []) {
+            return null;
+        }
+
+        foreach ($series as $seriesItem) {
+            if (! is_array($seriesItem)) {
+                continue;
+            }
+
+            $name = $this->text($seriesItem['name'] ?? $seriesItem['category'] ?? '');
+            $data = is_array($seriesItem['data'] ?? null) ? array_values($seriesItem['data']) : [];
+
+            if ($name === '' || $data === []) {
+                continue;
+            }
+
+            $numericData = array_map(fn (mixed $value): int|float|null => is_numeric($value) ? $value + 0 : null, $data);
+
+            if (! array_filter($numericData, fn (mixed $value): bool => is_numeric($value))) {
+                continue;
+            }
+
+            $safeSeries[] = [
+                'name' => $name,
+                'type' => 'line',
+                'data' => $numericData,
+            ];
+        }
+
+        if ($safeSeries === []) {
+            return null;
+        }
+
+        return [
+            'available' => true,
+            'categories' => $labels,
+            'series' => $safeSeries,
+            'emptyText' => 'No EPC insight trend is available for this view yet.',
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $insights
+     * @return array<int, array<string, mixed>>
+     */
+    private function epcInsightRows(array $insights, string $key): array
+    {
+        $section = is_array($insights[$key] ?? null) ? $insights[$key] : [];
+        $rows = is_array($section['rows'] ?? null) ? $section['rows'] : [];
+
+        return array_values(array_filter($rows, fn (mixed $row): bool => is_array($row)));
+    }
+
+    /**
+     * @param array<string, mixed> $module
+     * @return array<string, mixed>|null
+     */
+    private function epcFuelByPropertyTypeChartPayload(array $module): ?array
+    {
+        $rows = $this->epcInsightRows($this->epcInsights($module), 'fuel_by_property_type');
+
+        if ($rows === []) {
+            return null;
+        }
+
+        $safeRows = [];
+        $fuelTotals = [];
+
+        foreach (array_slice($rows, 0, 6) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $propertyType = $this->text($row['property_type'] ?? '');
+            $recordCount = is_numeric($row['record_count'] ?? null) ? (int) $row['record_count'] : null;
+            $fuelMix = is_array($row['fuel_mix'] ?? null) ? $row['fuel_mix'] : [];
+
+            if ($propertyType === '' || $fuelMix === []) {
+                continue;
+            }
+
+            $mix = [];
+
+            foreach ($fuelMix as $fuel) {
+                if (! is_array($fuel)) {
+                    continue;
+                }
+
+                $label = $this->text($fuel['label'] ?? '');
+                $share = is_numeric($fuel['share'] ?? null) ? (float) $fuel['share'] : null;
+                $count = is_numeric($fuel['count'] ?? null) ? (int) $fuel['count'] : null;
+
+                if ($label === '' || $share === null) {
+                    continue;
+                }
+
+                $mix[$label] = [
+                    'share' => $share,
+                    'count' => $count,
+                ];
+                $fuelTotals[$label] = ($fuelTotals[$label] ?? 0) + ($count ?? 0);
+            }
+
+            if ($mix === []) {
+                continue;
+            }
+
+            $safeRows[] = [
+                'property_type' => $propertyType,
+                'record_count' => $recordCount,
+                'mix' => $mix,
+            ];
+        }
+
+        if ($safeRows === [] || $fuelTotals === []) {
+            return null;
+        }
+
+        arsort($fuelTotals);
+        $fuelLabels = array_values(array_filter(
+            array_keys($fuelTotals),
+            fn (string $label): bool => $label !== 'Other / limited sample',
+        ));
+        $fuelLabels = array_slice($fuelLabels, 0, 5);
+
+        if (array_key_exists('Other / limited sample', $fuelTotals)) {
+            $fuelLabels[] = 'Other / limited sample';
+        }
+
+        $categories = array_map(fn (array $row): string => $row['property_type'], $safeRows);
+        $recordCounts = array_map(fn (array $row): ?int => $row['record_count'], $safeRows);
+        $series = [];
+
+        foreach ($fuelLabels as $fuelLabel) {
+            $series[] = [
+                'name' => $fuelLabel,
+                'type' => 'bar',
+                'stack' => 'fuel',
+                'unit' => 'percent',
+                'data' => array_map(function (array $row) use ($fuelLabel): array {
+                    $fuel = $row['mix'][$fuelLabel] ?? null;
+
+                    return [
+                        'value' => is_array($fuel) ? (float) $fuel['share'] : 0,
+                        'count' => is_array($fuel) ? $fuel['count'] : null,
+                    ];
+                }, $safeRows),
+            ];
+        }
+
+        return [
+            'available' => true,
+            'categories' => $categories,
+            'record_counts' => $recordCounts,
+            'series' => $series,
+            'emptyText' => 'No fuel by property type aggregate is available for this view yet.',
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $module
+     * @return array<string, mixed>|null
+     */
+    private function epcPropertyOpportunityChartPayload(array $module): ?array
+    {
+        $rows = $this->epcMergedPropertyOpportunityRows($this->epcInsights($module));
+
+        if ($rows === []) {
+            return null;
+        }
+
+        $safeRows = [];
+
+        foreach (array_slice($rows, 0, 6) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $propertyType = $this->text($row['property_type'] ?? '');
+
+            if ($propertyType === '') {
+                continue;
+            }
+
+            $safeRows[] = [
+                'property_type' => $propertyType,
+                'record_count' => is_numeric($row['record_count'] ?? null) ? (int) $row['record_count'] : null,
+                'improvement_gap' => is_numeric($row['average_improvement_gap'] ?? null) ? (float) $row['average_improvement_gap'] : null,
+                'poor_rating_share' => is_numeric($row['poor_rating_share'] ?? null) ? (float) $row['poor_rating_share'] : null,
+                'retrofit_signal_share' => is_numeric($row['retrofit_signal_share'] ?? null) ? (float) $row['retrofit_signal_share'] : null,
+            ];
+        }
+
+        if ($safeRows === []) {
+            return null;
+        }
+
+        return [
+            'available' => true,
+            'categories' => array_map(fn (array $row): string => $row['property_type'], $safeRows),
+            'record_counts' => array_map(fn (array $row): ?int => $row['record_count'], $safeRows),
+            'series' => [
+                [
+                    'name' => 'Poor-rating share',
+                    'unit' => 'percent',
+                    'data' => array_map(fn (array $row): ?float => $row['poor_rating_share'], $safeRows),
+                ],
+                [
+                    'name' => 'Retrofit signal share',
+                    'unit' => 'percent',
+                    'data' => array_map(fn (array $row): ?float => $row['retrofit_signal_share'], $safeRows),
+                ],
+                [
+                    'name' => 'Improvement gap',
+                    'unit' => 'score_points',
+                    'data' => array_map(fn (array $row): ?float => $row['improvement_gap'], $safeRows),
+                ],
+            ],
+            'emptyText' => 'No property type retrofit opportunity aggregate is available for this view yet.',
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $module
+     * @return array<string, mixed>|null
+     */
+    private function epcFuelSignalChartPayload(array $module): ?array
+    {
+        $rows = $this->epcInsightRows($this->epcInsights($module), 'retrofit_signal_by_fuel_type');
+
+        if ($rows === []) {
+            return null;
+        }
+
+        usort($rows, function (array $a, array $b): int {
+            return ((int) ($b['record_count'] ?? 0)) <=> ((int) ($a['record_count'] ?? 0));
+        });
+
+        $safeRows = [];
+
+        foreach (array_slice($rows, 0, 6) as $row) {
+            $fuelType = $this->text($row['fuel_type'] ?? '');
+
+            if ($fuelType === '') {
+                continue;
+            }
+
+            $safeRows[] = [
+                'fuel_type' => $fuelType,
+                'record_count' => is_numeric($row['record_count'] ?? null) ? (int) $row['record_count'] : null,
+                'improvement_gap' => is_numeric($row['average_improvement_gap'] ?? null) ? (float) $row['average_improvement_gap'] : null,
+                'poor_rating_share' => is_numeric($row['poor_rating_share'] ?? null) ? (float) $row['poor_rating_share'] : null,
+                'retrofit_signal_share' => is_numeric($row['retrofit_signal_share'] ?? null) ? (float) $row['retrofit_signal_share'] : null,
+            ];
+        }
+
+        if ($safeRows === []) {
+            return null;
+        }
+
+        return [
+            'available' => true,
+            'categories' => array_map(fn (array $row): string => $row['fuel_type'], $safeRows),
+            'record_counts' => array_map(fn (array $row): ?int => $row['record_count'], $safeRows),
+            'series' => [
+                [
+                    'name' => 'Poor-rating share',
+                    'unit' => 'percent',
+                    'data' => array_map(fn (array $row): ?float => $row['poor_rating_share'], $safeRows),
+                ],
+                [
+                    'name' => 'Retrofit signal share',
+                    'unit' => 'percent',
+                    'data' => array_map(fn (array $row): ?float => $row['retrofit_signal_share'], $safeRows),
+                ],
+                [
+                    'name' => 'Improvement gap',
+                    'unit' => 'score_points',
+                    'data' => array_map(fn (array $row): ?float => $row['improvement_gap'], $safeRows),
+                ],
+            ],
+            'emptyText' => 'No fuel or heating retrofit signal aggregate is available for this view yet.',
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $module
+     * @return array<string, mixed>|null
+     */
+    private function epcFuelTrendPayload(array $module): ?array
+    {
+        $trendPayload = $this->epcTimeSeriesPayload($module);
+        $periods = is_array($trendPayload['rating_distribution_by_period'] ?? null) ? $trendPayload['rating_distribution_by_period'] : [];
+        $labels = $this->chartLabels($trendPayload['labels'] ?? []);
+
+        if ($periods === [] || $labels === []) {
+            return null;
+        }
+
+        $totals = [];
+
+        foreach ($periods as $period) {
+            $fuelCounts = is_array($period['main_fuel_counts'] ?? null) ? $period['main_fuel_counts'] : [];
+
+            foreach ($fuelCounts as $fuel => $count) {
+                if (! is_numeric($count)) {
+                    continue;
+                }
+
+                $fuel = $this->fuelLabel((string) $fuel);
+                $totals[$fuel] = ($totals[$fuel] ?? 0) + (float) $count;
+            }
+        }
+
+        if ($totals === []) {
+            return null;
+        }
+
+        arsort($totals);
+        $topFuelLabels = array_slice(array_values(array_filter(
+            array_keys($totals),
+            fn (string $label): bool => $label !== 'Other / limited sample',
+        )), 0, 4);
+
+        if (array_key_exists('Other / limited sample', $totals)) {
+            $topFuelLabels[] = 'Other / limited sample';
+        }
+
+        $series = [];
+
+        foreach ($topFuelLabels as $fuelLabel) {
+            $series[] = [
+                'name' => $fuelLabel,
+                'type' => 'line',
+                'data' => array_values(array_map(function (mixed $period) use ($fuelLabel): int|float|null {
+                    $fuelCounts = is_array($period) && is_array($period['main_fuel_counts'] ?? null) ? $period['main_fuel_counts'] : [];
+
+                    foreach ($fuelCounts as $fuel => $count) {
+                        if ($this->fuelLabel((string) $fuel) === $fuelLabel && is_numeric($count)) {
+                            return $count + 0;
+                        }
+                    }
+
+                    return null;
+                }, $periods)),
+            ];
+        }
+
+        return [
+            'available' => true,
+            'categories' => $labels,
+            'series' => $series,
+            'emptyText' => 'No main-fuel EPC trend is available for this view yet.',
+        ];
+    }
+
+    private function fuelLabel(string $fuel): string
+    {
+        $normalised = strtoupper(trim($fuel));
+
+        if ($normalised === 'OTHER / LIMITED SAMPLE') {
+            return 'Other / limited sample';
+        }
+
+        if (str_contains($normalised, 'MAINS GAS') || str_contains($normalised, 'GAS: MAINS GAS')) {
+            return 'Mains gas';
+        }
+
+        if (str_contains($normalised, 'ELECTRICITY')) {
+            return 'Electricity';
+        }
+
+        if (str_contains($normalised, 'OIL')) {
+            return 'Oil';
+        }
+
+        if (str_contains($normalised, 'LPG')) {
+            return 'LPG';
+        }
+
+        if (str_contains($normalised, 'WOOD')) {
+            return 'Wood / biomass';
+        }
+
+        if (str_contains($normalised, 'COAL')) {
+            return 'Coal / solid fuel';
+        }
+
+        return ucwords(strtolower(str_replace(['_', '-'], ' ', $fuel)));
+    }
+
+    /**
+     * @param array<string, mixed> $module
+     * @return array<string, mixed>|null
+     */
+    private function epcPropertyTypePayload(array $module): ?array
+    {
+        $distributions = is_array($module['distributions'] ?? null) ? $module['distributions'] : [];
+        $propertyTypes = is_array($distributions['property_type_counts'] ?? null) ? $distributions['property_type_counts'] : [];
+
+        if ($propertyTypes === []) {
+            return null;
+        }
+
+        arsort($propertyTypes);
+
+        $items = [];
+
+        foreach ($propertyTypes as $label => $value) {
+            if (! is_numeric($value)) {
+                continue;
+            }
+
+            $items[] = [
+                'label' => $this->text($label),
+                'value' => $value + 0,
+            ];
+        }
+
+        if ($items === []) {
+            return null;
+        }
+
+        return [
+            'items' => $items,
+            'seriesName' => 'EPC certificate records',
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $module
+     * @return array<string, mixed>
+     */
+    private function epcTimeSeriesPayload(array $module): array
+    {
+        $charts = is_array($module['interactive_charts'] ?? null) ? $module['interactive_charts'] : [];
+
+        foreach ($charts as $chart) {
+            if (! is_array($chart) || $this->text($chart['type'] ?? '') !== 'epc-time-series') {
+                continue;
+            }
+
+            return is_array($chart['payload'] ?? null) ? $chart['payload'] : [];
+        }
+
+        return [];
+    }
+
+    /**
+     * @param array<string, mixed> $module
+     */
+    private function epcInsightPanels(array $module, string $classPrefix, array $panelCharts = []): string
+    {
+        $recordCount = $this->epcMetricValue($module, ['epc_assessments', 'EPC assessments']) ?? $module['record_count'] ?? null;
+        $poorCount = $this->epcMetricValue($module, ['poor_rating_count', 'Poor EPC ratings']);
+        $retrofitCount = $this->epcMetricValue($module, ['retrofit_signal_count', 'Retrofit signals']);
+        $currentScore = $this->epcMetricValue($module, ['average_current_efficiency', 'Average current score']);
+        $potentialScore = $this->epcMetricValue($module, ['average_potential_efficiency', 'Average potential score']);
+        $gap = $this->epcMetricValue($module, ['average_improvement_points', 'Average uplift']);
+        $poorShare = is_numeric($poorCount) && is_numeric($recordCount) && (float) $recordCount > 0
+            ? round(((float) $poorCount / (float) $recordCount) * 100, 1)
+            : null;
+        $retrofitShare = is_numeric($retrofitCount) && is_numeric($recordCount) && (float) $recordCount > 0
+            ? round(((float) $retrofitCount / (float) $recordCount) * 100, 1)
+            : null;
+        $insights = $this->epcInsights($module);
+        $cards = is_array($insights['insight_cards'] ?? null) ? $insights['insight_cards'] : [];
+        $propertyOpportunityRows = $this->epcMergedPropertyOpportunityRows($insights);
+        $fuelRows = $this->epcInsightRows($insights, 'fuel_by_property_type');
+        $hasFuelTrend = $this->epcInsightTrendPayload($module, 'fuel_trends') !== null || $this->epcFuelTrendPayload($module) !== null;
+        $hasPropertyTrend = $this->epcInsightTrendPayload($module, 'property_type_trends') !== null;
+
+        $panels = [
+            'retrofit_opportunity' => [
+                'title' => 'What this means',
+                'summary' => 'EPC certificate records show where poor ratings, retrofit signals and improvement gaps are most visible. This is not a count of unique homes.',
+                'guide' => [
+                    ['label' => 'Look for', 'text' => 'property types with long red, green and gold bars. Those are the clearest retrofit-opportunity signals in the evidence.'],
+                    ['label' => 'Red bars', 'text' => 'show the share of EPC certificate records with poor current ratings.'],
+                    ['label' => 'Green bars', 'text' => 'show the share of records with a recorded improvement signal.'],
+                    ['label' => 'Gold bars', 'text' => 'show the average current-to-potential EPC score gap.'],
+                ],
+                'metrics' => [
+                    ['label' => 'EPC assessment records', 'value' => $recordCount, 'format' => 'integer'],
+                    ['label' => 'Poor-rating share', 'value' => $poorShare, 'suffix' => '%'],
+                    ['label' => 'Retrofit signal share', 'value' => $retrofitShare, 'suffix' => '%'],
+                    ['label' => 'Average improvement gap', 'value' => $gap, 'suffix' => ' pts'],
+                ],
+                'cards' => $cards,
+            ],
+            'rating_profile' => [
+                'title' => 'What this means',
+                'summary' => 'This compares current and potential EPC rating buckets in approved aggregate certificate records.',
+                'guide' => [
+                    ['label' => 'Look for', 'text' => 'a shift from lower current ratings into better potential ratings.'],
+                    ['label' => 'Current rating', 'text' => 'is the recorded EPC rating at assessment.'],
+                    ['label' => 'Potential rating', 'text' => 'is the rating suggested by the EPC assessment after recommended improvements.'],
+                ],
+                'metrics' => [
+                    ['label' => 'Average current score', 'value' => $currentScore],
+                    ['label' => 'Average potential score', 'value' => $potentialScore],
+                    ['label' => 'Average improvement gap', 'value' => $gap, 'suffix' => ' pts'],
+                ],
+            ],
+            'evidence_volume' => [
+                'title' => 'What this means',
+                'summary' => 'This shows EPC certificate records lodged over time, not a count of unique homes or unique properties.',
+                'guide' => [
+                    ['label' => 'Look for', 'text' => 'periods with enough EPC certificate records to support the trend.'],
+                    ['label' => 'Higher bars', 'text' => 'mean more EPC assessment records in that period.'],
+                    ['label' => 'Caution', 'text' => 'record volume can reflect assessment activity, not direct changes to buildings.'],
+                ],
+                'metrics' => [
+                    ['label' => 'EPC assessment records', 'value' => $recordCount, 'format' => 'integer'],
+                ],
+            ],
+        ];
+
+        if ($hasFuelTrend) {
+            $panels['fuel_heating'] = [
+                'title' => 'What this means',
+                'summary' => 'Fuel patterns are based on the main fuel recorded on EPC assessments in each period.',
+                'guide' => [
+                    ['label' => 'Look for', 'text' => 'fuel categories with high poor-rating or retrofit-signal bars.'],
+                    ['label' => 'Fuel type', 'text' => 'means the main fuel recorded on the EPC assessment.'],
+                    ['label' => 'Caution', 'text' => 'this shows certificate evidence, not fuel switching by unique homes.'],
+                ],
+                'metrics' => [
+                    ['label' => 'EPC assessment records', 'value' => $recordCount, 'format' => 'integer'],
+                ],
+            ];
+        }
+
+        if ($hasPropertyTrend) {
+            $panels['property_type_trend'] = [
+                'title' => 'What this means',
+                'summary' => 'Property type trends are based on EPC certificate records by period. They show evidence mix, not a direct measure of buildings changing.',
+                'guide' => [
+                    ['label' => 'Look for', 'text' => 'which property types make up more of the EPC records in recent periods.'],
+                    ['label' => 'Evidence mix', 'text' => 'means the mix of EPC certificate records, not a count of unique properties.'],
+                ],
+                'metrics' => [
+                    ['label' => 'EPC assessment records', 'value' => $recordCount, 'format' => 'integer'],
+                ],
+            ];
+        }
+
+        if ($propertyOpportunityRows !== []) {
+            $panels['property_type_opportunity'] = [
+                'title' => 'What this means',
+                'summary' => 'Among EPC assessments, these rows compare poor-rating share, retrofit signal share and average improvement gap by property type.',
+                'guide' => [
+                    ['label' => 'Look for', 'text' => 'the property types that repeatedly score high across the three bar panels.'],
+                    ['label' => 'Strong signal', 'text' => 'means more EPC records in that category show poor ratings, upgrade potential, or larger score gaps.'],
+                    ['label' => 'Caution', 'text' => 'this is certificate-record evidence, not a unique property count.'],
+                ],
+                'metrics' => [
+                    ['label' => 'EPC assessment records', 'value' => $recordCount, 'format' => 'integer'],
+                ],
+            ];
+        }
+
+        if ($fuelRows !== []) {
+            $panels['fuel_by_property_type'] = [
+                'title' => 'What this means',
+                'summary' => 'This view shows recorded main fuel categories within each property type among EPC certificate records.',
+                'guide' => [
+                    ['label' => 'Look for', 'text' => 'which fuel categories dominate each property type.'],
+                    ['label' => 'Useful for', 'text' => 'spotting where heating, insulation or retrofit services may need different messaging.'],
+                    ['label' => 'Caution', 'text' => 'fuel mix is based on EPC certificate records, not unique homes.'],
+                ],
+                'metrics' => [
+                    ['label' => 'EPC assessment records', 'value' => $recordCount, 'format' => 'integer'],
+                ],
+            ];
+        }
+
+        $rendered = [];
+
+        foreach ($panels as $view => $panel) {
+            ob_start();
+            ?>
+            <section class="<?php echo esc_attr($classPrefix); ?>-epc-insight-panel" data-cpi-epc-panel="<?php echo esc_attr($view); ?>"<?php echo $view === 'retrofit_opportunity' ? '' : ' hidden'; ?>>
+                <div>
+                    <p class="<?php echo esc_attr($classPrefix); ?>-epc-insight-panel__eyebrow"><?php echo esc_html($panel['title']); ?></p>
+                    <p class="<?php echo esc_attr($classPrefix); ?>-epc-insight-panel__summary"><?php echo esc_html($panel['summary']); ?></p>
+                </div>
+                <?php echo $this->epcInsightGuide(is_array($panel['guide'] ?? null) ? $panel['guide'] : [], $classPrefix); ?>
+                <?php echo $this->epcInsightMetrics($panel['metrics'], $classPrefix); ?>
+                <?php echo $this->epcInsightCards(is_array($panel['cards'] ?? null) ? $panel['cards'] : [], $classPrefix); ?>
+                <?php echo implode('', $panelCharts[$view] ?? []); ?>
+                <?php echo $this->epcInsightRowsTable(is_array($panel['rows'] ?? null) ? $panel['rows'] : [], $this->text($panel['row_type'] ?? ''), $classPrefix); ?>
+            </section>
+            <?php
+
+            $rendered[] = (string) ob_get_clean();
+        }
+
+        return '<div class="'.esc_attr($classPrefix).'-epc-insight-panels">'.implode('', $rendered).'</div>';
+    }
+
+    /**
+     * @param array<string, mixed> $insights
+     * @return array<int, array<string, mixed>>
+     */
+    private function epcMergedPropertyOpportunityRows(array $insights): array
+    {
+        $rowsByType = [];
+
+        foreach (['poor_rating_by_property_type', 'improvement_gap_by_property_type', 'retrofit_signal_by_property_type'] as $key) {
+            foreach ($this->epcInsightRows($insights, $key) as $row) {
+                $propertyType = $this->text($row['property_type'] ?? '');
+
+                if ($propertyType === '') {
+                    continue;
+                }
+
+                $rowsByType[$propertyType] ??= ['property_type' => $propertyType];
+                $rowsByType[$propertyType] = array_merge($rowsByType[$propertyType], $row);
+            }
+        }
+
+        return array_values($rowsByType);
+    }
+
+    /**
+     * @param array<int, mixed> $cards
+     */
+    private function epcInsightCards(array $cards, string $classPrefix): string
+    {
+        $rendered = [];
+
+        foreach ($cards as $card) {
+            if (! is_array($card)) {
+                continue;
+            }
+
+            $title = $this->text($card['title'] ?? '');
+            $label = $this->text($card['label'] ?? '');
+            $value = $card['value'] ?? null;
+            $unit = $this->text($card['unit'] ?? '');
+            $summary = $this->text($card['summary'] ?? '');
+            $period = $this->text($card['period'] ?? '');
+
+            if ($title === '' || $label === '') {
+                continue;
+            }
+
+            ob_start();
+            ?>
+            <article class="<?php echo esc_attr($classPrefix); ?>-epc-insight-card">
+                <p class="<?php echo esc_attr($classPrefix); ?>-epc-insight-card__title"><?php echo esc_html($title); ?></p>
+                <p class="<?php echo esc_attr($classPrefix); ?>-epc-insight-card__label"><?php echo esc_html($label); ?></p>
+                <?php if (is_scalar($value)) : ?>
+                    <p class="<?php echo esc_attr($classPrefix); ?>-epc-insight-card__value"><?php echo esc_html($this->formatInsightValue($value, $unit)); ?></p>
+                <?php endif; ?>
+                <?php if ($period !== '') : ?>
+                    <p class="<?php echo esc_attr($classPrefix); ?>-epc-insight-card__meta"><?php echo esc_html(sprintf(__('Latest supported period: %s', 'cornish-property-intelligence'), $period)); ?></p>
+                <?php endif; ?>
+                <?php if ($summary !== '') : ?>
+                    <p class="<?php echo esc_attr($classPrefix); ?>-epc-insight-card__summary"><?php echo esc_html($summary); ?></p>
+                <?php endif; ?>
+            </article>
+            <?php
+
+            $rendered[] = (string) ob_get_clean();
+        }
+
+        if ($rendered === []) {
+            return '';
+        }
+
+        return '<div class="'.esc_attr($classPrefix).'-epc-insight-cards">'.implode('', $rendered).'</div>';
+    }
+
+    /**
+     * @param array<int, mixed> $items
+     */
+    private function epcInsightGuide(array $items, string $classPrefix): string
+    {
+        $rendered = [];
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $label = $this->text($item['label'] ?? '');
+            $text = $this->text($item['text'] ?? '');
+
+            if ($label === '' || $text === '') {
+                continue;
+            }
+
+            $rendered[] = '<li><strong>'.esc_html($label).'</strong><span>'.esc_html($text).'</span></li>';
+        }
+
+        if ($rendered === []) {
+            return '';
+        }
+
+        return '<div class="'.esc_attr($classPrefix).'-epc-insight-guide" aria-label="'.esc_attr__('How to read this EPC view', 'cornish-property-intelligence').'">'
+            .'<p>'.esc_html__('How to read it', 'cornish-property-intelligence').'</p>'
+            .'<ul>'.implode('', $rendered).'</ul>'
+            .'</div>';
+    }
+
+    /**
+     * @param array<int, mixed> $rows
+     */
+    private function epcInsightRowsTable(array $rows, string $rowType, string $classPrefix): string
+    {
+        if ($rows === []) {
+            return '';
+        }
+
+        if ($rowType === 'fuel_by_property_type') {
+            return $this->epcFuelByPropertyTypeRows($rows, $classPrefix);
+        }
+
+        if ($rowType === 'fuel_signal') {
+            return $this->epcSignalBars($rows, 'fuel_type', 'Fuel / heating signal rows', $classPrefix);
+        }
+
+        if ($rowType === 'property_opportunity') {
+            return $this->epcPropertyOpportunityCards($rows, $classPrefix);
+        }
+
+        return '';
+    }
+
+    /**
+     * @param array<int, mixed> $rows
+     */
+    private function epcSignalRows(array $rows, string $labelKey, string $title, string $classPrefix): string
+    {
+        $rendered = [];
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $label = $this->text($row[$labelKey] ?? '');
+
+            if ($label === '') {
+                continue;
+            }
+
+            $rendered[] = '<tr>'
+                .'<th scope="row">'.esc_html($label).'</th>'
+                .'<td>'.esc_html($this->formatOptionalInsightValue($row['record_count'] ?? null, 'certificate_record_count')).'</td>'
+                .'<td>'.esc_html($this->formatOptionalInsightValue($row['poor_rating_share'] ?? null, 'percent')).'</td>'
+                .'<td>'.esc_html($this->formatOptionalInsightValue($row['retrofit_signal_share'] ?? null, 'percent')).'</td>'
+                .'<td>'.esc_html($this->formatOptionalInsightValue($row['average_improvement_gap'] ?? null, 'score_points')).'</td>'
+                .'</tr>';
+        }
+
+        if ($rendered === []) {
+            return '';
+        }
+
+        return '<div class="'.esc_attr($classPrefix).'-epc-insight-table-wrap">'
+            .'<p class="'.esc_attr($classPrefix).'-epc-insight-table-title">'.esc_html($title).'</p>'
+            .'<table class="'.esc_attr($classPrefix).'-epc-insight-table">'
+            .'<thead><tr><th scope="col">'.esc_html__('Category', 'cornish-property-intelligence').'</th><th scope="col">'.esc_html__('Records', 'cornish-property-intelligence').'</th><th scope="col">'.esc_html__('Poor rating', 'cornish-property-intelligence').'</th><th scope="col">'.esc_html__('Retrofit signal', 'cornish-property-intelligence').'</th><th scope="col">'.esc_html__('Gap', 'cornish-property-intelligence').'</th></tr></thead>'
+            .'<tbody>'.implode('', $rendered).'</tbody>'
+            .'</table></div>';
+    }
+
+    /**
+     * @param array<int, mixed> $rows
+     */
+    private function epcPropertyOpportunityCards(array $rows, string $classPrefix): string
+    {
+        $safeRows = array_values(array_filter($rows, fn (mixed $row): bool => is_array($row) && $this->text($row['property_type'] ?? '') !== ''));
+
+        if ($safeRows === []) {
+            return '';
+        }
+
+        $maxGap = 0.0;
+        $maxRecords = 0.0;
+
+        foreach ($safeRows as $row) {
+            $maxGap = max($maxGap, is_numeric($row['average_improvement_gap'] ?? null) ? (float) $row['average_improvement_gap'] : 0.0);
+            $maxRecords = max($maxRecords, is_numeric($row['record_count'] ?? null) ? (float) $row['record_count'] : 0.0);
+        }
+
+        $rendered = [];
+
+        foreach (array_slice($safeRows, 0, 6) as $row) {
+            $propertyType = $this->text($row['property_type'] ?? '');
+            $recordCount = is_numeric($row['record_count'] ?? null) ? (float) $row['record_count'] : null;
+            $gap = is_numeric($row['average_improvement_gap'] ?? null) ? (float) $row['average_improvement_gap'] : null;
+            $poorShare = is_numeric($row['poor_rating_share'] ?? null) ? (float) $row['poor_rating_share'] : null;
+            $retrofitShare = is_numeric($row['retrofit_signal_share'] ?? null) ? (float) $row['retrofit_signal_share'] : null;
+            $recordShare = $recordCount !== null && $maxRecords > 0 ? ($recordCount / $maxRecords) * 100 : null;
+            $gapShare = $gap !== null && $maxGap > 0 ? ($gap / $maxGap) * 100 : null;
+
+            ob_start();
+            ?>
+            <article class="<?php echo esc_attr($classPrefix); ?>-epc-opportunity-card">
+                <div class="<?php echo esc_attr($classPrefix); ?>-epc-opportunity-card__header">
+                    <h5><?php echo esc_html($propertyType); ?></h5>
+                    <?php if ($recordCount !== null) : ?>
+                        <span><?php echo esc_html(sprintf(__('%s EPC records', 'cornish-property-intelligence'), $this->formatMetricValue($recordCount, 'integer'))); ?></span>
+                    <?php endif; ?>
+                </div>
+                <?php echo $this->epcInsightMeter(__('Improvement gap', 'cornish-property-intelligence'), $gapShare, $gap !== null ? $this->formatInsightValue($gap, 'score_points') : 'N/A', $classPrefix, 'gap'); ?>
+                <?php echo $this->epcInsightMeter(__('Poor-rating share', 'cornish-property-intelligence'), $poorShare, $poorShare !== null ? $this->formatInsightValue($poorShare, 'percent') : 'N/A', $classPrefix, 'poor'); ?>
+                <?php echo $this->epcInsightMeter(__('Retrofit signal share', 'cornish-property-intelligence'), $retrofitShare, $retrofitShare !== null ? $this->formatInsightValue($retrofitShare, 'percent') : 'N/A', $classPrefix, 'signal'); ?>
+                <?php echo $this->epcInsightMeter(__('Evidence volume', 'cornish-property-intelligence'), $recordShare, $recordCount !== null ? $this->formatInsightValue($recordCount, 'certificate_record_count') : 'N/A', $classPrefix, 'records'); ?>
+            </article>
+            <?php
+
+            $rendered[] = (string) ob_get_clean();
+        }
+
+        return '<div class="'.esc_attr($classPrefix).'-epc-opportunity-grid">'.implode('', $rendered).'</div>';
+    }
+
+    /**
+     * @param array<int, mixed> $rows
+     */
+    private function epcSignalBars(array $rows, string $labelKey, string $title, string $classPrefix): string
+    {
+        $safeRows = array_values(array_filter($rows, fn (mixed $row): bool => is_array($row) && $this->text($row[$labelKey] ?? '') !== ''));
+
+        if ($safeRows === []) {
+            return '';
+        }
+
+        $rendered = [];
+
+        foreach (array_slice($safeRows, 0, 5) as $row) {
+            $label = $this->text($row[$labelKey] ?? '');
+            $recordCount = is_numeric($row['record_count'] ?? null) ? (float) $row['record_count'] : null;
+            $poorShare = is_numeric($row['poor_rating_share'] ?? null) ? (float) $row['poor_rating_share'] : null;
+            $retrofitShare = is_numeric($row['retrofit_signal_share'] ?? null) ? (float) $row['retrofit_signal_share'] : null;
+            $gap = is_numeric($row['average_improvement_gap'] ?? null) ? (float) $row['average_improvement_gap'] : null;
+
+            ob_start();
+            ?>
+            <article class="<?php echo esc_attr($classPrefix); ?>-epc-signal-row">
+                <div class="<?php echo esc_attr($classPrefix); ?>-epc-signal-row__header">
+                    <h5><?php echo esc_html($label); ?></h5>
+                    <?php if ($recordCount !== null) : ?>
+                        <span><?php echo esc_html(sprintf(__('%s EPC records', 'cornish-property-intelligence'), $this->formatMetricValue($recordCount, 'integer'))); ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="<?php echo esc_attr($classPrefix); ?>-epc-signal-row__meters">
+                    <?php echo $this->epcInsightMeter(__('Poor rating', 'cornish-property-intelligence'), $poorShare, $poorShare !== null ? $this->formatInsightValue($poorShare, 'percent') : 'N/A', $classPrefix, 'poor'); ?>
+                    <?php echo $this->epcInsightMeter(__('Retrofit signal', 'cornish-property-intelligence'), $retrofitShare, $retrofitShare !== null ? $this->formatInsightValue($retrofitShare, 'percent') : 'N/A', $classPrefix, 'signal'); ?>
+                    <?php if ($gap !== null) : ?>
+                        <p class="<?php echo esc_attr($classPrefix); ?>-epc-signal-row__gap"><?php echo esc_html(sprintf(__('Average improvement gap: %s', 'cornish-property-intelligence'), $this->formatInsightValue($gap, 'score_points'))); ?></p>
+                    <?php endif; ?>
+                </div>
+            </article>
+            <?php
+
+            $rendered[] = (string) ob_get_clean();
+        }
+
+        return '<div class="'.esc_attr($classPrefix).'-epc-signal-bars" aria-label="'.esc_attr($title).'">'.implode('', $rendered).'</div>';
+    }
+
+    /**
+     * @param array<int, mixed> $rows
+     */
+    private function epcFuelByPropertyTypeRows(array $rows, string $classPrefix): string
+    {
+        $rendered = [];
+
+        foreach (array_slice($rows, 0, 5) as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $propertyType = $this->text($row['property_type'] ?? '');
+            $fuelMix = is_array($row['fuel_mix'] ?? null) ? $row['fuel_mix'] : [];
+
+            if ($propertyType === '' || $fuelMix === []) {
+                continue;
+            }
+
+            $segments = [];
+            $legendItems = [];
+
+            foreach (array_slice($fuelMix, 0, 5) as $index => $fuel) {
+                if (! is_array($fuel)) {
+                    continue;
+                }
+
+                $label = $this->text($fuel['label'] ?? '');
+                $share = $fuel['share'] ?? null;
+                $count = $fuel['count'] ?? null;
+
+                if ($label === '' || ! is_numeric($share)) {
+                    continue;
+                }
+
+                $shareValue = max(0.0, min(100.0, (float) $share));
+                $style = '--cpi-share: '.esc_attr((string) $shareValue).'%;';
+                $segmentClass = $classPrefix.'-epc-fuel-segment '.$classPrefix.'-epc-fuel-segment--'.($index + 1);
+                $swatchClass = $classPrefix.'-epc-fuel-swatch '.$classPrefix.'-epc-fuel-swatch--'.($index + 1);
+                $segments[] = '<span class="'.esc_attr($segmentClass).'" style="'.esc_attr($style).'" title="'.esc_attr($label.' '.$this->formatInsightValue($share, 'percent')).'"><span>'.esc_html($label).'</span></span>';
+                $legendItems[] = '<li><span class="'.esc_attr($swatchClass).'"></span><span>'.esc_html($label).'</span><strong>'.esc_html($this->formatInsightValue($share, 'percent')).($count !== null && is_numeric($count) ? ' <em>('.esc_html($this->formatMetricValue($count, 'integer')).')</em>' : '').'</strong></li>';
+            }
+
+            if ($segments === []) {
+                continue;
+            }
+
+            $rendered[] = '<article class="'.esc_attr($classPrefix).'-epc-fuel-row">'
+                .'<div class="'.esc_attr($classPrefix).'-epc-fuel-row__header"><h5>'.esc_html($propertyType).'</h5>'
+                .'<p>'.esc_html(sprintf(__('Among %s EPC certificate records', 'cornish-property-intelligence'), $this->formatMetricValue($row['record_count'] ?? '', 'integer'))).'</p></div>'
+                .'<div class="'.esc_attr($classPrefix).'-epc-fuel-stack" aria-label="'.esc_attr(sprintf(__('Main fuel mix for %s', 'cornish-property-intelligence'), $propertyType)).'">'.implode('', $segments).'</div>'
+                .'<ul class="'.esc_attr($classPrefix).'-epc-fuel-legend">'.implode('', $legendItems).'</ul>'
+                .'</article>';
+        }
+
+        if ($rendered === []) {
+            return '';
+        }
+
+        return '<div class="'.esc_attr($classPrefix).'-epc-fuel-rows">'.implode('', $rendered).'</div>';
+    }
+
+    private function epcInsightMeter(string $label, mixed $share, string $value, string $classPrefix, string $tone): string
+    {
+        $shareValue = is_numeric($share) ? max(0.0, min(100.0, (float) $share)) : 0.0;
+        $style = '--cpi-share: '.esc_attr((string) $shareValue).'%;';
+
+        return '<div class="'.esc_attr($classPrefix).'-epc-insight-meter '.esc_attr($classPrefix).'-epc-insight-meter--'.esc_attr($tone).'">'
+            .'<div class="'.esc_attr($classPrefix).'-epc-insight-meter__label"><span>'.esc_html($label).'</span><strong>'.esc_html($value).'</strong></div>'
+            .'<div class="'.esc_attr($classPrefix).'-epc-insight-meter__track"><span style="'.esc_attr($style).'"></span></div>'
+            .'</div>';
+    }
+
+    private function formatOptionalInsightValue(mixed $value, string $unit): string
+    {
+        return is_scalar($value) ? $this->formatInsightValue($value, $unit) : 'N/A';
+    }
+
+    private function formatInsightValue(mixed $value, string $unit): string
+    {
+        if (! is_numeric($value)) {
+            return $this->text($value);
+        }
+
+        $formatted = $this->formatMetricValue($value, $unit === 'certificate_record_count' ? 'integer' : '');
+
+        return match ($unit) {
+            'percent' => $formatted.'%',
+            'score_points' => $formatted.' pts',
+            default => $formatted,
+        };
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $metrics
+     */
+    private function epcInsightMetrics(array $metrics, string $classPrefix): string
+    {
+        $rendered = [];
+
+        foreach ($metrics as $metric) {
+            $label = $this->text($metric['label'] ?? '');
+            $value = $metric['value'] ?? null;
+
+            if ($label === '' || ! is_scalar($value)) {
+                continue;
+            }
+
+            $format = $this->text($metric['format'] ?? '');
+            $suffix = $this->text($metric['suffix'] ?? '');
+            $rendered[] = '<div class="'.esc_attr($classPrefix).'-epc-insight-metric"><dt>'.esc_html($label).'</dt><dd>'.esc_html($this->formatMetricValue($value, $format).$suffix).'</dd></div>';
+        }
+
+        if ($rendered === []) {
+            return '';
+        }
+
+        return '<dl class="'.esc_attr($classPrefix).'-epc-insight-metrics">'.implode('', $rendered).'</dl>';
+    }
+
+    /**
+     * @param array<string, mixed> $module
+     * @param array<int, string> $keys
+     */
+    private function epcMetricValue(array $module, array $keys): mixed
+    {
+        $metrics = is_array($module['metrics'] ?? null) ? $module['metrics'] : [];
+
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $metrics) && is_scalar($metrics[$key])) {
+                return $metrics[$key];
+            }
+        }
+
+        foreach ($metrics as $metric) {
+            if (! is_array($metric)) {
+                continue;
+            }
+
+            $label = $this->text($metric['label'] ?? '');
+
+            if (in_array($label, $keys, true) && is_scalar($metric['value'] ?? null)) {
+                return $metric['value'];
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -593,8 +1991,10 @@ final class ModuleRenderer
     private function interactiveEvidence(array $module, string $classPrefix, string $moduleType): string
     {
         $charts = is_array($module['interactive_charts'] ?? null) ? $module['interactive_charts'] : [];
+        $charts = $moduleType === 'epc_status' ? $this->epcInsightCharts($module, $charts) : $charts;
         $primary = [];
         $secondary = [];
+        $panelCharts = [];
 
         foreach ($charts as $chart) {
             if (! is_array($chart)) {
@@ -608,11 +2008,29 @@ final class ModuleRenderer
             }
 
             $type = $this->text($chart['type'] ?? '');
+            $insightViews = is_array($chart['insight_views'] ?? null)
+                ? array_values(array_filter(array_map(fn (mixed $view): string => sanitize_html_class($this->text($view)), $chart['insight_views'])))
+                : [];
+
+            if (
+                $moduleType === 'epc_status'
+                && in_array($type, ['epc-opportunity-bars', 'epc-fuel-property-mix'], true)
+                && $insightViews !== []
+            ) {
+                foreach ($insightViews as $view) {
+                    $panelCharts[$view][] = $rendered;
+                }
+
+                continue;
+            }
 
             if (
                 in_array($type, ['monthly-comparison', 'source-comparison', 'rating-comparison'], true)
                 || ($moduleType === 'change_mix' && $type === 'distribution')
                 || ($moduleType === 'epc_status' && $type === 'distribution')
+                || ($moduleType === 'epc_status' && $type === 'epc-time-series')
+                || ($moduleType === 'epc_status' && $type === 'epc-fuel-property-mix')
+                || ($moduleType === 'epc_status' && $type === 'epc-opportunity-bars')
             ) {
                 $primary[] = $rendered;
             } else {
@@ -621,8 +2039,9 @@ final class ModuleRenderer
         }
 
         $supporting = $this->supportingEvidence($module, $classPrefix, $moduleType);
+        $insightPanels = $moduleType === 'epc_status' ? $this->epcInsightPanels($module, $classPrefix, $panelCharts) : '';
 
-        if ($primary === [] && $secondary === [] && $supporting === '') {
+        if ($primary === [] && $secondary === [] && $supporting === '' && $insightPanels === '') {
             return '';
         }
 
@@ -632,6 +2051,8 @@ final class ModuleRenderer
         ob_start();
         ?>
         <div class="<?php echo esc_attr($classPrefix); ?>-evidence-visuals">
+            <?php echo $insightPanels; ?>
+
             <?php if ($secondaryFirst && ($secondary !== [] || ($supportingIsInline && $supporting !== ''))) : ?>
                 <div class="<?php echo esc_attr($classPrefix); ?>-evidence-secondary">
                     <?php echo implode('', $secondary); ?>
@@ -679,6 +2100,9 @@ final class ModuleRenderer
 
         $renderedSeries = match ($type) {
             'monthly-comparison', 'source-comparison', 'rating-comparison' => $this->seriesChartsFromPayload($payload, $classPrefix),
+            'epc-time-series' => $this->epcTrendChartFromPayload($payload, $classPrefix),
+            'epc-fuel-property-mix' => $this->epcFuelPropertyMixFallback($payload, $classPrefix),
+            'epc-opportunity-bars' => $this->epcOpportunityBarsFallback($payload, $classPrefix),
             'distribution' => $this->distributionChartFromPayload($payload, $classPrefix),
             default => '',
         };
@@ -689,10 +2113,17 @@ final class ModuleRenderer
 
         $title = $this->chartTitle($this->text($chart['title'] ?? ''));
         $description = $this->text($chart['description'] ?? '');
+        $insights = is_array($chart['insight_views'] ?? null)
+            ? array_values(array_filter(array_map(fn (mixed $view): string => sanitize_html_class($this->text($view)), $chart['insight_views'])))
+            : [];
+        $insightAttribute = $insights !== [] ? ' data-cpi-epc-insights="'.esc_attr(implode(' ', $insights)).'"' : '';
+        $hiddenAttribute = $insights !== [] && ! in_array('retrofit_opportunity', $insights, true) ? ' hidden' : '';
+        $defaultMetric = $this->text($chart['default_metric'] ?? '');
+        $defaultMetricAttribute = $defaultMetric !== '' ? ' data-cpi-epc-default-metric="'.esc_attr($defaultMetric).'"' : '';
 
         ob_start();
         ?>
-        <section class="<?php echo esc_attr($classPrefix); ?>-chart <?php echo esc_attr($classPrefix); ?>-chart--interactive <?php echo esc_attr($classPrefix); ?>-chart--<?php echo esc_attr(sanitize_html_class($type)); ?>" data-cpi-interactive-chart="<?php echo esc_attr($type); ?>">
+        <section class="<?php echo esc_attr($classPrefix); ?>-chart <?php echo esc_attr($classPrefix); ?>-chart--interactive <?php echo esc_attr($classPrefix); ?>-chart--<?php echo esc_attr(sanitize_html_class($type)); ?>" data-cpi-interactive-chart="<?php echo esc_attr($type); ?>"<?php echo $insightAttribute; ?><?php echo $defaultMetricAttribute; ?><?php echo $hiddenAttribute; ?>>
             <?php if ($title !== '') : ?>
                 <h4 class="<?php echo esc_attr($classPrefix); ?>-chart__title"><?php echo esc_html($title); ?></h4>
             <?php endif; ?>
@@ -753,6 +2184,156 @@ final class ModuleRenderer
         }
 
         return implode('', $rendered);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function epcTrendChartFromPayload(array $payload, string $classPrefix): string
+    {
+        $labels = $this->chartLabels($payload['labels'] ?? []);
+        $series = is_array($payload['series'] ?? null) ? $payload['series'] : [];
+        $recordSeries = $this->firstSeriesByMetric($series, 'record_count') ?? $series[0] ?? null;
+
+        if ($labels === [] || ! is_array($recordSeries)) {
+            return '';
+        }
+
+        $name = $this->text($recordSeries['name'] ?? 'EPC certificate records');
+        $buckets = $this->seriesBuckets($labels, $recordSeries['data'] ?? $recordSeries['values'] ?? null);
+
+        if ($buckets === []) {
+            return '';
+        }
+
+        ob_start();
+        ?>
+        <div class="<?php echo esc_attr($classPrefix); ?>-chart__series">
+            <p class="<?php echo esc_attr($classPrefix); ?>-chart__series-name"><?php echo esc_html($name !== '' ? $name : 'EPC certificate records'); ?></p>
+            <?php echo $this->bars->render($buckets, $classPrefix); ?>
+        </div>
+        <p class="<?php echo esc_attr($classPrefix); ?>-chart__description">
+            <?php echo esc_html__('EPC certificate records by period. These are assessment records over time, not unique property counts.', 'cornish-property-intelligence'); ?>
+        </p>
+        <?php
+
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function epcFuelPropertyMixFallback(array $payload, string $classPrefix): string
+    {
+        $categories = $this->chartLabels($payload['categories'] ?? []);
+        $series = is_array($payload['series'] ?? null) ? $payload['series'] : [];
+
+        if ($categories === [] || $series === []) {
+            return '';
+        }
+
+        $rows = [];
+
+        foreach ($categories as $index => $category) {
+            $segments = [];
+
+            foreach ($series as $seriesIndex => $seriesItem) {
+                if (! is_array($seriesItem)) {
+                    continue;
+                }
+
+                $label = $this->text($seriesItem['name'] ?? '');
+                $data = is_array($seriesItem['data'] ?? null) ? $seriesItem['data'] : [];
+                $point = is_array($data[$index] ?? null) ? $data[$index] : [];
+                $share = is_numeric($point['value'] ?? null) ? (float) $point['value'] : 0.0;
+
+                if ($label === '' || $share <= 0) {
+                    continue;
+                }
+
+                $class = $classPrefix.'-epc-fuel-segment '.$classPrefix.'-epc-fuel-segment--'.(($seriesIndex % 5) + 1);
+                $segments[] = '<span class="'.esc_attr($class).'" style="'.esc_attr('--cpi-share: '.min(100, max(0, $share)).'%;').'" title="'.esc_attr($label.' '.$this->formatInsightValue($share, 'percent')).'"><span>'.esc_html($label).'</span></span>';
+            }
+
+            if ($segments === []) {
+                continue;
+            }
+
+            $rows[] = '<div class="'.esc_attr($classPrefix).'-epc-fuel-chart-fallback-row">'
+                .'<span>'.esc_html($category).'</span>'
+                .'<div class="'.esc_attr($classPrefix).'-epc-fuel-stack">'.implode('', $segments).'</div>'
+                .'</div>';
+        }
+
+        if ($rows === []) {
+            return '';
+        }
+
+        return '<div class="'.esc_attr($classPrefix).'-epc-fuel-chart-fallback">'.implode('', $rows).'</div>';
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function epcOpportunityBarsFallback(array $payload, string $classPrefix): string
+    {
+        $categories = $this->chartLabels($payload['categories'] ?? []);
+        $series = is_array($payload['series'] ?? null) ? $payload['series'] : [];
+
+        if ($categories === [] || $series === []) {
+            return '';
+        }
+
+        $rows = [];
+
+        foreach ($categories as $index => $category) {
+            $items = [];
+
+            foreach ($series as $seriesItem) {
+                if (! is_array($seriesItem)) {
+                    continue;
+                }
+
+                $label = $this->text($seriesItem['name'] ?? '');
+                $unit = $this->text($seriesItem['unit'] ?? '');
+                $data = is_array($seriesItem['data'] ?? null) ? $seriesItem['data'] : [];
+                $value = is_numeric($data[$index] ?? null) ? (float) $data[$index] : null;
+
+                if ($label === '' || $value === null) {
+                    continue;
+                }
+
+                $items[] = '<li><span>'.esc_html($label).'</span><strong>'.esc_html($this->formatInsightValue($value, $unit)).'</strong></li>';
+            }
+
+            if ($items === []) {
+                continue;
+            }
+
+            $rows[] = '<div class="'.esc_attr($classPrefix).'-epc-opportunity-chart-fallback-row">'
+                .'<h5>'.esc_html($category).'</h5><ul>'.implode('', $items).'</ul></div>';
+        }
+
+        if ($rows === []) {
+            return '';
+        }
+
+        return '<div class="'.esc_attr($classPrefix).'-epc-opportunity-chart-fallback">'.implode('', $rows).'</div>';
+    }
+
+    /**
+     * @param array<int, mixed> $series
+     * @return array<string, mixed>|null
+     */
+    private function firstSeriesByMetric(array $series, string $metric): ?array
+    {
+        foreach ($series as $seriesItem) {
+            if (is_array($seriesItem) && $this->text($seriesItem['metric'] ?? '') === $metric) {
+                return $seriesItem;
+            }
+        }
+
+        return null;
     }
 
     /**
